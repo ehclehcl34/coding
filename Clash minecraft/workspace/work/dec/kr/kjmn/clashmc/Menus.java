@@ -985,7 +985,7 @@ final class Menus {
 
             boolean orig = var1 != null && var1.originalSkins;
             ItemStack ov = Ui.icon(
-                "skin_original",
+                orig ? "skin_original" : "skin_original_off",
                 orig ? Material.LIME_DYE : Material.GRAY_DYE,
                 orig ? "§a§l원본 스킨으로 보기: 켜짐" : "§7§l원본 스킨으로 보기: 꺼짐",
                 "§7켜면 모든 유닛 / 타워가",
