@@ -1,0 +1,15 @@
+# 클래시 마크 스킨 목록 (직접 추가)
+# 지금은 스킨 없음 → 모든 유닛/타워가 기본 모델로 나옴
+#
+# 추가 예시 (BetterModel models 폴더에 skin_knight_gold.bbmodel 을 넣었다면):
+#   knight_gold:
+#     target: knight              # 카드 id 또는 princess / king
+#     name: "황금 기사"
+#     theme: gold
+#     model: skin_knight_gold     # 팀색 모델이면 skin_cannon_gold_{team} 처럼 {team} (blue/red 자동)
+#     barrel-model: ""            # 해골 비행선 통 같은 보조 모델 (없으면 비움)
+#     rarity: legendary           # common / rare / epic / legendary
+#     unlock: "trophies:1200"     # default | admin | trophies:N | wins:N | ranked-wins:N | games:N | king:N
+#     desc: "설명"
+#     icon: knight_gold           # UI 팩 아이콘 (없으면 기본 아이템)
+skins: {}

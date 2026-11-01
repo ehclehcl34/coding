@@ -1,0 +1,1676 @@
+# ─────────────────────────────────────────────
+#  클래시 마크 (ClashMC) 설정 - Paper 1.21.4
+#  모든 거리 단위: 타일(원작 칸). 1타일 = 2블록
+#  스탯: 클래시로얄 11레벨(토너먼트 표준) 위키 기준
+# ─────────────────────────────────────────────
+
+# 경기장 목록 - 동시에 여러 경기가 돌아가려면 경기장을 여러 개 등록
+#   /clash arena paste <이름>      서 있는 자리에 clash_arena.schem 붙여넣고 등록 (FAWE/WorldEdit 필요)
+#   /clash arena grid <개수> [간격]  +X 방향으로 여러 개 한 번에 생성
+#   /clash arena add <이름>        이미 붙여넣은 경기장의 기준점(붙여넣을 때 서 있던 자리)에 서서 등록
+arenas:
+  main:
+    world: clash1
+    x: 0
+    y: -60
+    z: 0
+
+# 메인 경기장(main) 기준 +X 방향으로 step 칸마다 경기장 자동 등록 (arena2 ~ arena<count>)
+#   기본: 총 5개 → x 0 / 90 / 180 / 270 / 360
+arena-grid:
+  count: 5
+  step: 90
+
+# 플러그인 업데이트로 경기장 schem 이 바뀌면 서버 켜질 때 비어 있는 경기장을 자동으로 다시 붙여넣음 (FAWE/WorldEdit 필요)
+#   직접 손본 경기장이 있으면 false 로 하고 /clash arena repaste 로 직접
+arena-auto-repaste: true
+
+# 로비 - /clash lobby paste (clash_lobby.schem 붙여넣기 + 로비 지정) 또는 /clash setlobby
+lobby:
+  enabled: true                # 경기 밖 플레이어: 로비 스폰 / 간편 메뉴 / 보호
+  world: clash1
+  x: -79
+  y: -60
+  z: 63
+  yaw: 180
+
+ranked:
+  min-players: 2               # 최소 인원 (짝수)
+  max-players: 10
+  preferred-players: 4         # 이 인원이 모이고 min-wait 초가 지나면 바로 시작
+  min-wait: 8
+  max-wait: 30                 # 이 시간이 지나면 2명이라도 시작
+  trophy-window: 200           # 매칭 트로피 범위 (대기할수록 넓어짐)
+  window-grow-per-second: 15
+  king-loss-multiplier: 1.3    # 패배 시 킹은 더 많이 잃음
+  unit-loss-multiplier: 0.5    # 유닛 플레이어는 적게 (항복이면 0)
+
+skins:
+  enabled: true                # skins.yml / 모델 플러그인에 skin_* 모델 필요
+
+# 서버 켜진 뒤 자동으로 /cm reload (진행 중인 경기가 있으면 건너뜀)
+auto-reload:
+  enabled: true
+  delays: [5, 30]              # 서버 켜지고 몇 초 뒤에 할지 (여러 번 가능)
+
+game:
+  # 킹이 어드벤처 모드로 경기장 위를 날아다니며 지휘 (false 면 발코니 고정)
+  king-fly: true
+  king-fly-speed: 0.06
+  deck-seconds: 25             # 경기 전 덱 확인 시간 (저장된 덱이 8장이면 바로 준비 완료)
+  surrender-after: 60          # 전투 시작 후 몇 초부터 킹이 항복 가능
+  match-seconds: 180           # 정규 시간 3분
+  double-elixir-last: 60       # 마지막 60초 더블 엘릭서
+  overtime-seconds: 120        # 연장 (서든데스, 더블 엘릭서)
+  end-delay: 8                 # 결과 표시 후 정리까지 초
+  start-elixir: 5
+  max-elixir: 10
+  elixir-seconds: 2.8          # 엘릭서 1 충전 시간 (더블이면 절반)
+  team-chat-slowmode: 5        # 대기 중 플레이어 팀 채팅 슬로우모드 (초)
+  sight-range: 5.5             # 유닛 시야 (타일)
+  # 블록/초 = 원작속도/60 × 2 × speed-scale  (보통 = 2블록/초)
+  speed-scale: 1.0
+  # 플레이어 걷기 속도(walkSpeed) = 블록/초 × 이 값  (기본 걷기 0.2 ≈ 4.3블록/초)
+  walk-speed-per-block: 0.0465
+  # 공중 유닛 비행 속도(flySpeed) = 블록/초 × 이 값  (기본 비행 0.1 ≈ 10.9블록/초)
+  fly-speed-per-block: 0.0092
+  air-height: 4                # 공중 유닛 비행 높이 (바닥 위 블록)
+  follower-leash: 6            # 군단 AI가 우두머리를 따라다니는 거리 (블록)
+  # 가르기: 군단 카드를 중앙선 양옆 1칸(가운데 두 열)에 놓으면 반반 나뉘어 양쪽 라인으로 감
+  split:
+    enabled: true
+    width: 2.2                 # 중앙선에서 이 거리(블록) 안에 놓으면 가르기
+  # 겹침 방지: 유닛끼리(지상끼리 / 공중끼리) 서로 밀어내고, 지상 유닛은 타워·건물 안으로 못 들어감
+  # 건물은 타워나 다른 건물과 겹치는 자리에 배치 불가
+  collision:
+    enabled: true
+    strength: 0.5              # 한 틱에 겹친 거리의 몇 배를 밀어낼지 (0.05~1, 클수록 딱딱하게)
+    max-push: 0.35             # 유닛끼리 한 틱에 밀리는 최대 거리 (블록)
+    player-push: 0.5           # 플레이어 유닛이 밀릴 때 속도 배율 (0 이면 플레이어는 안 밀림)
+  charge-reset-ticks: 6        # 프린스 돌진: 이 틱 이상 멈춰 있으면 돌진/누적 거리 초기화 (20틱 = 1초)
+  # 탑뷰: 경기 중 킹이 F키로 전환. 경기장 가운데 상공에서 바로 아래를 봄 (자리 고정, 고개만 돌려 칸 조준)
+  # 높이 40이면 멀리 있는 유닛이 48블록 밖 → spigot.yml 의 entity-tracking-range (monsters / misc / display) 를 96 이상으로
+  top-view:
+    enabled: true
+    height: 40                 # 바닥 위 높이 (블록)
+
+towers:
+  princess: { hp: 3052, damage: 109, hit-speed: 0.8, range: 7.5 }
+  king:     { hp: 4824, damage: 109, hit-speed: 1.0, range: 7.0 }
+  # ModelEngine 타워 모델 (비우면 블록 타워). ModelEngine 없으면 자동으로 블록 타워
+  princess-model: clash_princess   # 팀색은 플러그인이 tc_ 본에 칠함
+  king-model: clash_king
+ui:
+  king-bar-scale: 2.6          # 킹 타워 체력바 크기
+  princess-bar-scale: 1.7
+  # ClashMC_UI_pack 리소스팩 사용 (엘릭서 바/크라운/체력바 글리프 + 카드 아이콘). 팩 없이 쓰면 false
+  resource-pack: true
+  # 타워/유닛 머리 위 체력바 (텍스트 디스플레이)
+  hp-bars: true
+  # 유닛 체력바 옆에 숫자 표시
+  unit-hp-numbers: true
+  # 맞을 때 떠오르는 데미지 숫자
+  damage-numbers: true
+  # UI 팩을 모델엔진 팩과 따로 올려둔 경우: 직접 받을 수 있는 zip 주소 + sha1 (비우면 안 보냄)
+  # 참가(/clash join, /clash test start) 때 서버 기본 팩 위에 추가로 적용됨
+  pack-url: ""
+  pack-sha1: ""
+  # UI 팩 자동 배포 (pack-url 을 비워두면 사용): jar 안의 팩을 이 포트로 직접 올려주고 sha1 도 자동
+  #   접속할 때 쓴 서버 주소로 받아감. 호스팅 업체가 포트를 막으면 열어주거나 address 에 외부 주소 지정
+  pack-host:
+    enabled: true
+    port: 8165
+    address: ""                # 비우면 플레이어가 접속한 주소 사용 (예: play.myserver.kr)
+    # server.properties 에 합친 팩 주소·sha1·id 자동 등록 → 접속 로딩 화면에서 한 번만 적용, 같은 버전이면 다시 안 받음
+    #   address(또는 server.properties 의 server-ip) 가 있어야 함. 팩이 바뀌면 다음 재시작부터 반영 (그 전엔 게임 안에서 새 팩 전송)
+    server-properties: true
+  # 리소스팩 병합: /cm reload (서버 켜질 때 자동 리로드 포함) 때마다 아래 팩들 + UI 팩을 하나로 합쳐서 배포
+  #   경로는 서버 폴더 기준. zip 파일이나 폴더 둘 다 됨. 같은 파일은 UI 팩 우선, 같은 JSON(폰트·아틀라스 등)은 목록을 합침
+  #   → server.properties 의 resource-pack 에 BetterModel 팩을 따로 걸어둘 필요 없음 (걸려 있으면 비우기)
+  merge-pack:
+    enabled: true
+    sources:
+      - plugins/BetterModel/build.zip
+# 서버 목록 아이콘: plugins/ClashMC/server-icon.png (64x64) 를 보여줌. 바꾸려면 그 파일을 교체 후 재시작
+server-icon:
+  enabled: true
+# 배경음악 (UI 리소스팩에 들어 있음, 원곡 아님 - 직접 만든 곡)
+#   로비 / 전투 / 연장전은 반복, 경기 끝나면 승리·패배 음악. 플레이어는 /clash bgm 으로 끄고 켬
+#   category: 소리 설정의 어느 음량 조절을 따를지 (RECORDS = 주크박스/소리 블록, MUSIC = 음악)
+bgm:
+  enabled: true
+  volume: 0.6
+  category: RECORDS
+  lobby: true
+  battle: true
+  victory-defeat: true
+  # 곡 길이 (초). 같은 분위기 곡(lobby, lobby2, lobby3 ...)은 한 곡 끝날 때마다 무작위로 바뀜. 0 이면 그 곡은 안 씀
+  length:
+    lobby: 76.8
+    lobby2: 70.0
+    lobby3: 72.0
+    battle: 64.0
+    battle2: 60.0
+    battle3: 60.0
+    overtime: 51.2
+    overtime2: 48.0
+    victory: 5.6
+    defeat: 4.7
+hitbox:
+  # 플레이어 유닛: 바닐라 scale 속성으로 히트박스를 카드 높이에 맞춤 (1.8블록 = 1.0배)
+  scale-players: true
+  # AI 유닛: 모델엔진 모델이 붙으면 모델의 hitbox 본이 히트박스를 결정 (false 권장)
+  scale-modeled-mobs: false
+  # scale 적용 시 모델까지 커지는 모델엔진 버전이면 true (모델 배율을 역보정)
+  model-follows-scale: false
+  # 모델 사용 시 충돌용 블록을 배리어로 (true) / 석재 블록 타워 (false)
+  barrier-collision: true
+
+modelengine:
+  # 모델 id 형식: 블루프린트 또는 블루프린트:변형 (무료판 12개 제한 때문에 궁수/머스킷병, 해골/비행선, 건물 3종, 타워 2종을 묶음)
+  enabled: true                # 모델 플러그인이 있으면 카드별 model 적용
+  # auto = BetterModel 있으면 BetterModel, 없으면 ModelEngine / bettermodel / modelengine
+  backend: auto
+
+# ─────────────────────────────────────────────
+#  카드
+#  type: TROOP(단일, 대기열 플레이어) / SQUAD(군단, 우두머리 1 + AI) / BUILDING(AI 구조물) / SPELL(킹 직접)
+#  targets: GROUND / AIR_GROUND / BUILDINGS
+#  speed: SLOW(45) / MEDIUM(60) / FAST(90) / VERY_FAST(120)
+# ─────────────────────────────────────────────
+cards:
+  goblins:
+    name: 고블린
+    elixir: 2
+    type: SQUAD
+    count: 4
+    hp: 202
+    damage: 120
+    hit-speed: 1.1
+    speed: VERY_FAST
+    range: 0.5
+    targets: GROUND
+    icon: LIME_DYE
+    weapon: IRON_SWORD
+    mob: ZOMBIE
+    baby: true
+    model: clash_goblin
+    hitbox: [0.7, 1.2]          # 히트박스 폭, 높이 (블록)
+  minions:
+    name: 미니언
+    elixir: 3
+    type: SQUAD
+    count: 3
+    hp: 230
+    damage: 107
+    hit-speed: 1.1
+    speed: FAST
+    range: 1.6
+    targets: AIR_GROUND
+    air: true
+    icon: BLUE_DYE
+    weapon: STICK
+    mob: VEX
+    model: clash_minion
+    hitbox: [0.9, 1.0]          # 히트박스 폭, 높이 (블록)
+  archers:
+    name: 아처
+    elixir: 3
+    type: SQUAD
+    count: 2
+    hp: 304
+    damage: 107
+    hit-speed: 1.2
+    speed: MEDIUM
+    range: 5.0
+    targets: AIR_GROUND
+    icon: BOW
+    weapon: BOW
+    mob: SKELETON
+    model: clash_archer
+    hitbox: [0.8, 1.8]          # 히트박스 폭, 높이 (블록)
+  goblin_barrel:
+    name: 고블린 통
+    elixir: 3
+    type: SQUAD
+    count: 3
+    hp: 202
+    damage: 120
+    hit-speed: 1.1
+    speed: VERY_FAST
+    range: 0.5
+    targets: GROUND
+    deploy: 1.1
+    anywhere: true
+    icon: BARREL
+    weapon: IRON_SWORD
+    mob: ZOMBIE
+    baby: true
+    model: clash_goblin
+    projectile-model: clash_goblin_barrel   # 날아가는 고블린 통 모델
+    hitbox: [0.7, 1.2]          # 히트박스 폭, 높이 (블록)
+    radius: 1.5
+  skeleton_barrel:
+    name: 해골통
+    elixir: 3
+    type: SQUAD
+    count: 7
+    hp: 81                     # 해골 1마리
+    damage: 81
+    hit-speed: 1.1
+    speed: FAST
+    range: 0.5
+    targets: GROUND
+    icon: BONE
+    weapon: BONE
+    mob: SKELETON
+    model: clash_skeletons:skeleton
+    hitbox: [0.7, 1.3]          # 히트박스 폭, 높이 (블록)
+    barrel-hp: 532
+    barrel-death-damage: 145
+    barrel-death-radius: 2.0
+    barrel-model: clash_skeleton_balloon
+  skeleton_army:
+    name: 해골 군단
+    elixir: 3
+    type: SQUAD
+    count: 15
+    hp: 81
+    damage: 81
+    hit-speed: 1.1
+    speed: FAST
+    range: 0.5
+    radius: 1.6
+    targets: GROUND
+    icon: BONE
+    weapon: BONE
+    mob: SKELETON
+    model: clash_skeletons:skeleton
+    hitbox: [0.7, 1.3]
+  knight:
+    name: 기사
+    elixir: 3
+    type: TROOP
+    hp: 1766
+    damage: 202
+    hit-speed: 1.2
+    speed: MEDIUM
+    range: 1.2
+    targets: GROUND
+    icon: IRON_SWORD
+    weapon: IRON_SWORD
+    mob: ZOMBIE
+    model: clash_knight
+    hitbox: [1.0, 2.1]          # 히트박스 폭, 높이 (블록)
+  miner:
+    name: 광부
+    elixir: 3
+    type: TROOP
+    hp: 1210
+    damage: 194
+    tower-damage: 48
+    hit-speed: 1.3
+    speed: FAST
+    range: 1.2
+    targets: GROUND
+    anywhere: true
+    icon: IRON_SHOVEL
+    weapon: IRON_SHOVEL
+    mob: ZOMBIE
+    model: clash_miner
+    hitbox: [1.0, 1.8]          # 히트박스 폭, 높이 (블록)
+  musketeer:
+    name: 머스킷병
+    elixir: 4
+    type: TROOP
+    hp: 721
+    damage: 217
+    hit-speed: 1.0
+    speed: MEDIUM
+    range: 6.0
+    targets: AIR_GROUND
+    icon: CROSSBOW
+    weapon: CROSSBOW
+    mob: SKELETON
+    model: clash_musketeer
+    hitbox: [0.9, 2.0]          # 히트박스 폭, 높이 (블록)
+  baby_dragon:
+    name: 베이비 드래곤
+    elixir: 4
+    type: TROOP
+    hp: 1152
+    damage: 160
+    splash: 1.2
+    hit-speed: 1.5
+    speed: FAST
+    range: 3.5
+    targets: AIR_GROUND
+    air: true
+    icon: DRAGON_BREATH
+    weapon: BLAZE_ROD
+    mob: VEX
+    model: clash_baby_dragon
+    hitbox: [1.6, 1.3]          # 히트박스 폭, 높이 (블록)
+  electro_wizard:
+    name: 일렉트로 마법사
+    elixir: 4
+    type: TROOP
+    hp: 713
+    damage: 220                # 대상 1명: 220, 2명: 각 110
+    hit-speed: 1.8
+    speed: FAST
+    range: 5.0
+    targets: AIR_GROUND
+    stun: 0.5
+    spawn-damage: 192
+    spawn-radius: 2.5
+    icon: LIGHTNING_ROD
+    weapon: LIGHTNING_ROD
+    mob: SKELETON
+    model: clash_electro_wizard
+    hitbox: [0.9, 2.1]          # 히트박스 폭, 높이 (블록)
+  hog_rider:
+    name: 호그 라이더
+    elixir: 4
+    type: TROOP
+    hp: 1696
+    damage: 318
+    hit-speed: 1.6
+    speed: VERY_FAST
+    range: 0.8
+    targets: BUILDINGS
+    icon: PORKCHOP
+    weapon: IRON_AXE
+    mob: ZOMBIE
+    model: clash_hog_rider
+    hitbox: [1.3, 2.2]          # 히트박스 폭, 높이 (블록)
+  giant:
+    name: 자이언트
+    elixir: 5
+    type: TROOP
+    hp: 3945
+    damage: 254
+    hit-speed: 1.5
+    speed: SLOW
+    range: 1.2
+    targets: BUILDINGS
+    icon: LEATHER_CHESTPLATE
+    weapon: AIR
+    mob: ZOMBIE
+    model: clash_giant
+    hitbox: [2.7, 4.8]          # 히트박스 폭, 높이 (블록) - 3.5.0 모델 1.5배
+    bar-height: 6.3             # 체력바 높이 (머리 위)
+  cannon:
+    name: 대포
+    elixir: 3
+    type: BUILDING
+    hp: 824
+    damage: 212
+    hit-speed: 1.0
+    range: 5.5
+    targets: GROUND
+    lifetime: 30
+    size: 3
+    icon: DISPENSER
+    helmet: DISPENSER
+    model: clash_cannon
+    hitbox: [3.4, 2.2]          # 히트박스 폭, 높이 (블록)
+  tesla:
+    name: 뇌전탑
+    elixir: 4
+    type: BUILDING
+    hp: 1152
+    damage: 230
+    hit-speed: 1.1
+    range: 5.5
+    targets: AIR_GROUND
+    lifetime: 35
+    size: 2
+    icon: LIGHTNING_ROD
+    helmet: LIGHTNING_ROD
+    model: clash_tesla
+    hitbox: [2.8, 3.0]          # 히트박스 폭, 높이 (블록)
+  inferno_tower:
+    name: 인페르노 타워
+    elixir: 5
+    type: BUILDING
+    hp: 1749
+    damage: 42                 # 1단계, 2초마다 159 → 848
+    damage-stages: [42, 159, 848]
+    stage-seconds: 2.0
+    hit-speed: 0.4
+    range: 6.0
+    targets: AIR_GROUND
+    lifetime: 30
+    size: 3
+    icon: MAGMA_BLOCK
+    helmet: MAGMA_BLOCK
+    model: clash_inferno
+    hitbox: [3.2, 3.4]          # 히트박스 폭, 높이 (블록)
+  zap:
+    name: 감전 마법
+    elixir: 2
+    type: SPELL
+    damage: 192
+    tower-damage: 58
+    radius: 2.5
+    stun: 0.5
+    icon: GLOWSTONE_DUST
+  the_log:
+    name: 통나무
+    elixir: 2
+    type: SPELL
+    damage: 290
+    tower-damage: 87
+    length: 10.1               # 굴러가는 거리 (블록)
+    width: 3.9                 # 통나무 폭
+    knockback: 1.0
+    own-side: true
+    icon: OAK_LOG
+    model: clash_log           # 굴러가는 통나무 모델 (없으면 블록 통나무)
+  fireball:
+    name: 파이어볼
+    elixir: 4
+    type: SPELL
+    damage: 689
+    tower-damage: 207
+    radius: 2.5
+    knockback: 1.0
+    icon: FIRE_CHARGE
+  poison:
+    name: 독 마법
+    elixir: 4
+    type: SPELL
+    damage: 91                 # 초당
+    tower-damage: 23
+    radius: 3.5
+    duration: 8
+    slow: 0.15
+    icon: SPIDER_EYE
+  freeze:
+    name: 얼음 마법
+    elixir: 4
+    type: SPELL
+    damage: 115
+    tower-damage: 35
+    radius: 3.0
+    duration: 4
+    icon: BLUE_ICE
+  # ───────── 2.7.0 추가 카드 ─────────
+  skeletons:
+    name: 해골병사
+    elixir: 1
+    type: SQUAD
+    count: 3
+    hp: 81
+    damage: 81
+    hit-speed: 1.0
+    speed: FAST
+    range: 0.5
+    targets: GROUND
+    icon: BONE
+    weapon: BONE
+    mob: SKELETON
+    model: clash_skeletons:skeleton
+    hitbox: [0.7, 1.3]
+  bats:
+    name: 박쥐
+    elixir: 2
+    type: SQUAD
+    count: 5
+    hp: 81
+    damage: 81
+    hit-speed: 1.3
+    speed: VERY_FAST
+    range: 1.2
+    targets: AIR_GROUND
+    air: true
+    icon: BLACK_DYE
+    weapon: AIR
+    mob: VEX
+    model: clash_bat
+    hitbox: [0.8, 0.6]
+  spear_goblins:
+    name: 창 고블린
+    elixir: 2
+    type: SQUAD
+    count: 3
+    hp: 133
+    damage: 81
+    hit-speed: 1.7
+    speed: VERY_FAST
+    range: 5.0
+    targets: AIR_GROUND
+    shot: SPEAR
+    icon: TRIDENT
+    weapon: STICK
+    mob: ZOMBIE
+    baby: true
+    model: clash_spear_goblin
+    hitbox: [0.8, 1.4]
+  goblin_gang:
+    name: 고블린 갱
+    elixir: 3
+    type: SQUAD
+    count: 6
+    mix: ["goblins:3", "spear_goblins:3"]   # 고블린 3 + 창 고블린 3
+    hp: 202
+    damage: 120
+    targets: GROUND
+    icon: LIME_DYE
+    model: clash_goblin
+  bomber:
+    name: 폭탄병
+    elixir: 2
+    type: TROOP
+    hp: 332
+    damage: 222
+    splash: 1.5
+    hit-speed: 1.8
+    speed: MEDIUM
+    range: 4.5
+    targets: GROUND
+    shot: BOMB
+    icon: TNT
+    weapon: AIR
+    mob: SKELETON
+    model: clash_bomber
+    hitbox: [0.8, 1.6]
+  barbarians:
+    name: 바바리안
+    elixir: 5
+    type: SQUAD
+    count: 5
+    hp: 670
+    damage: 192
+    hit-speed: 1.3
+    speed: MEDIUM
+    range: 0.7
+    targets: GROUND
+    icon: IRON_SWORD
+    weapon: IRON_SWORD
+    mob: ZOMBIE
+    model: clash_barbarian
+    hitbox: [1.0, 2.0]
+  elite_barbarians:
+    name: 엘리트 바바리안
+    elixir: 6
+    type: SQUAD
+    count: 2
+    hp: 1341
+    damage: 384
+    hit-speed: 1.4
+    speed: VERY_FAST
+    range: 1.2
+    targets: GROUND
+    icon: DIAMOND_SWORD
+    weapon: DIAMOND_SWORD
+    mob: ZOMBIE
+    model: clash_elite_barbarian
+    hitbox: [1.0, 2.1]
+  minion_horde:
+    name: 미니언 패거리
+    elixir: 5
+    type: SQUAD
+    count: 6
+    hp: 230
+    damage: 107
+    hit-speed: 1.1
+    speed: FAST
+    range: 1.6
+    targets: AIR_GROUND
+    air: true
+    icon: PURPLE_DYE
+    weapon: STICK
+    mob: VEX
+    model: clash_minion
+    hitbox: [0.9, 1.0]
+  ice_spirit:
+    name: 아이스 스피릿
+    elixir: 1
+    type: TROOP
+    ai-only: true              # 플레이어 안 붙음 (뛰어들어 터지는 유닛)
+    kamikaze: true
+    hp: 209
+    damage: 100
+    splash: 1.5
+    stun: 1.1                  # 얼림 (초)
+    hit-speed: 0.1
+    speed: VERY_FAST
+    range: 2.5                 # 뛰어드는 거리
+    targets: AIR_GROUND
+    icon: SNOWBALL
+    mob: ZOMBIE
+    baby: true
+    model: clash_ice_spirit
+    hitbox: [0.7, 0.8]
+  fire_spirit:
+    name: 파이어 스피릿
+    elixir: 1
+    type: TROOP
+    ai-only: true
+    kamikaze: true
+    hp: 230
+    damage: 207
+    splash: 2.3
+    hit-speed: 0.1
+    speed: VERY_FAST
+    range: 2.0
+    targets: AIR_GROUND
+    icon: BLAZE_POWDER
+    mob: ZOMBIE
+    baby: true
+    model: clash_fire_spirit
+    hitbox: [0.7, 0.8]
+  electro_spirit:
+    name: 일렉트로 스피릿
+    elixir: 1
+    type: TROOP
+    ai-only: true
+    kamikaze: true
+    hp: 230
+    damage: 99
+    stun: 0.5
+    chain: 9                   # 최대 연쇄 대상
+    chain-range: 4.0
+    hit-speed: 0.1
+    speed: VERY_FAST
+    range: 2.5
+    targets: AIR_GROUND
+    icon: LIGHT_BLUE_DYE
+    mob: ZOMBIE
+    baby: true
+    model: clash_electro_spirit
+    hitbox: [0.7, 0.8]
+  arrows:
+    name: 화살
+    elixir: 3
+    type: SPELL
+    damage: 366                # 3번 나눠 떨어짐 (총합)
+    tower-damage: 93
+    radius: 4.0
+    waves: 3
+    icon: ARROW
+  giant_snowball:
+    name: 거대 눈덩이
+    elixir: 2
+    type: SPELL
+    damage: 191
+    tower-damage: 58
+    radius: 2.5
+    knockback: 1.8
+    slow: 0.35
+    slow-duration: 2.5
+    icon: SNOW_BLOCK
+  barbarian_barrel:
+    name: 바바리안 통
+    elixir: 2
+    type: SPELL
+    damage: 230                # 굴러가며 지상 피해 (크라운 타워는 피해 없음)
+    tower-damage: 0
+    length: 4.5                # 굴러가는 거리
+    width: 2.6                 # 통 폭
+    knockback: 0.6
+    own-side: true
+    spawn: barbarians          # 다 굴러가면 통이 깨지고 바바리안 1명 (670 HP / 192 피해)
+    icon: BARREL
+    model: clash_barbarian_barrel
+  # ───────── 2.9.0 추가 카드 (clashroyale.fandom.com 11레벨 기준) ─────────
+  mini_pekka:
+    name: 미니 페카
+    elixir: 4
+    type: TROOP
+    hp: 1361
+    damage: 720
+    hit-speed: 1.6
+    speed: FAST
+    range: 0.8
+    targets: GROUND
+    icon: NETHERITE_SWORD
+    weapon: NETHERITE_SWORD
+    mob: ZOMBIE
+    model: clash_mini_pekka
+    hitbox: [0.9, 1.3]
+  mega_minion:
+    name: 메가 미니언
+    elixir: 3
+    type: TROOP
+    hp: 837
+    damage: 311
+    hit-speed: 1.5
+    speed: MEDIUM
+    range: 1.6
+    targets: AIR_GROUND
+    air: true
+    icon: NETHERITE_HELMET
+    weapon: STICK
+    mob: VEX
+    model: clash_mega_minion
+    hitbox: [1.2, 1.3]
+  prince:
+    name: 프린스
+    elixir: 5
+    type: TROOP
+    hp: 1920
+    damage: 392
+    charge: true               # 2타일 쉬지 않고 달리면 돌진: 속도 2배 + 첫 타격 784 (멈추거나 스턴·빙결·넉백이면 풀림)
+    charge-distance: 2.0
+    charge-damage: 784
+    river-jump: true           # 위키: 2022년부터 강을 점프해서 건넘
+    hit-speed: 1.4
+    speed: MEDIUM
+    range: 1.6
+    targets: GROUND
+    icon: GOLDEN_HORSE_ARMOR
+    weapon: TRIDENT
+    mob: ZOMBIE
+    model: clash_prince
+    hitbox: [1.4, 2.6]
+  three_musketeers:
+    name: 삼총사
+    elixir: 9
+    type: SQUAD
+    count: 3
+    hp: 721
+    damage: 218
+    hit-speed: 1.0
+    speed: MEDIUM
+    range: 6.0
+    targets: AIR_GROUND
+    icon: CROSSBOW
+    weapon: CROSSBOW
+    mob: SKELETON
+    model: clash_musketeer
+    hitbox: [0.9, 2.0]
+  golem:
+    name: 골렘
+    elixir: 8
+    type: TROOP
+    hp: 5120                   # 위키 표가 깨져 있어 10·12레벨 값 사이로 맞춤
+    damage: 312
+    hit-speed: 2.5
+    speed: SLOW
+    range: 0.75
+    targets: BUILDINGS
+    deploy: 3.0
+    death-damage: 312
+    death-radius: 2.0
+    death-spawn: golemite
+    death-spawn-count: 2
+    icon: COBBLESTONE
+    weapon: AIR
+    mob: ZOMBIE
+    model: clash_golem
+    hitbox: [2.2, 3.4]
+  golemite:
+    name: 작은 골렘
+    deck: false                # 골렘이 죽으면 나옴 (덱에 못 넣음)
+    elixir: 0
+    type: TROOP
+    ai-only: true
+    hp: 1040
+    damage: 49
+    hit-speed: 2.5
+    speed: SLOW
+    range: 0.75
+    targets: BUILDINGS
+    death-damage: 99
+    death-radius: 1.5
+    icon: COBBLESTONE
+    weapon: AIR
+    mob: ZOMBIE
+    model: clash_golemite
+    hitbox: [1.2, 1.6]
+  # ---- 3.1.0 새 카드 (수치: clashroyale.fandom.com 11레벨) ----
+  lava_hound:
+    name: 라바 하운드
+    elixir: 7
+    type: TROOP
+    hp: 3581
+    damage: 53
+    hit-speed: 1.3
+    speed: SLOW
+    range: 3.5
+    targets: BUILDINGS         # 건물만 공격 → 항상 AI
+    air: true
+    shot: FIREBALL
+    death-spawn: lava_pup      # 죽으면 라바 펍 6마리
+    death-spawn-count: 6
+    icon: MAGMA_BLOCK
+    weapon: AIR
+    mob: VEX
+    model: clash_lava_hound
+    hitbox: [2.2, 2.0]
+  lava_pup:
+    name: 라바 펍
+    deck: false                # 라바 하운드가 죽으면 나옴 (덱에 못 넣음)
+    elixir: 0
+    type: TROOP
+    ai-only: true
+    hp: 217
+    damage: 81
+    hit-speed: 1.7
+    speed: MEDIUM
+    range: 1.6
+    targets: AIR_GROUND
+    air: true
+    shot: FIREBALL
+    icon: MAGMA_CREAM
+    weapon: AIR
+    mob: VEX
+    model: clash_lava_pup
+    hitbox: [0.8, 0.8]
+  ice_golem:
+    name: 얼음 골렘
+    elixir: 2
+    type: TROOP
+    hp: 1315
+    damage: 92
+    hit-speed: 2.5
+    speed: SLOW
+    range: 0.75
+    targets: BUILDINGS
+    death-damage: 92           # 죽을 때 얼음 폭발: 피해 + 감속 (공중 포함)
+    death-radius: 2.0
+    death-slow: 0.30
+    death-slow-duration: 2.5
+    icon: PACKED_ICE
+    weapon: AIR
+    mob: ZOMBIE
+    model: clash_ice_golem
+    hitbox: [1.3, 2.1]
+  balloon:
+    name: 해골 비행선
+    elixir: 5
+    type: TROOP
+    hp: 1679
+    damage: 640
+    hit-speed: 2.0
+    speed: MEDIUM
+    range: 0.5
+    targets: BUILDINGS
+    air: true
+    shot: BOMB                 # 건물 위에서 폭탄 투하
+    death-damage: 240          # 죽으면 폭탄이 떨어져 지상에 피해
+    death-radius: 3.0
+    death-bomb: true
+    icon: TNT_MINECART
+    weapon: AIR
+    mob: VEX
+    model: clash_balloon
+    hitbox: [1.8, 3.4]
+  goblin_hut:
+    name: 고블린 오두막
+    elixir: 4
+    type: BUILDING
+    hp: 1228
+    damage: 0
+    lifetime: 30
+    size: 3
+    range: 6.0                 # 이 안에 적이 있을 때만 소환
+    spawn: spear_goblins
+    spawn-every: 1.9
+    spawn-count: 1
+    spawn-when-enemy: true
+    death-spawn: spear_goblins
+    death-spawn-count: 1
+    targets: GROUND
+    icon: SPRUCE_DOOR
+    helmet: SPRUCE_DOOR
+    model: clash_goblin_hut
+    hitbox: [3.4, 3.0]
+  barbarian_hut:
+    name: 바바리안 오두막
+    elixir: 6
+    type: BUILDING
+    hp: 1166
+    damage: 0
+    lifetime: 30
+    size: 3
+    spawn: barbarians
+    spawn-every: 15            # 위키 표 15초 (본문은 14초)
+    spawn-count: 3
+    death-spawn: barbarians
+    death-spawn-count: 1
+    targets: GROUND
+    icon: OAK_DOOR
+    helmet: OAK_DOOR
+    model: clash_barbarian_hut
+    hitbox: [3.4, 3.2]
+  tombstone:
+    name: 해골 무덤
+    elixir: 3
+    type: BUILDING
+    hp: 529                    # 위키 페이지를 못 읽어서 알려진 11레벨 값
+    damage: 0
+    lifetime: 30
+    size: 2
+    spawn: skeletons
+    spawn-every: 3.5
+    spawn-count: 2
+    death-spawn: skeletons
+    death-spawn-count: 4
+    targets: GROUND
+    icon: MOSSY_COBBLESTONE
+    helmet: MOSSY_COBBLESTONE
+    model: clash_tombstone
+    hitbox: [2.2, 2.4]
+  # ---- 3.5.0 새 카드 14종 (수치: clashroyale.fandom.com 11레벨) ----
+  goblin_cage:
+    name: 고블린 우리
+    elixir: 4
+    type: BUILDING
+    hp: 780
+    damage: 0                  # 공격 안 함, 부서지면 고블린 싸움꾼이 나옴
+    lifetime: 20
+    size: 3
+    targets: GROUND
+    death-spawn: goblin_brawler
+    death-spawn-count: 1
+    icon: IRON_BARS
+    helmet: IRON_BARS
+    model: clash_goblin_cage
+    hitbox: [3.2, 2.6]
+  goblin_brawler:
+    name: 고블린 싸움꾼
+    deck: false                # 고블린 우리가 부서지면 나옴
+    elixir: 0
+    type: TROOP
+    ai-only: true
+    hp: 1080
+    damage: 337
+    hit-speed: 1.1
+    speed: FAST
+    range: 0.8
+    targets: GROUND
+    icon: LEATHER
+    weapon: AIR
+    mob: ZOMBIE
+    model: clash_goblin_brawler
+    hitbox: [1.3, 2.4]
+  witch:
+    name: 마녀
+    elixir: 5
+    type: TROOP
+    hp: 839
+    damage: 135
+    splash: 1.5
+    hit-speed: 1.1
+    speed: MEDIUM
+    range: 5.5
+    targets: AIR_GROUND
+    shot: GOOP
+    spawn: skeletons           # 배치 1초 뒤부터 7초마다 해골 4마리
+    spawn-every: 7
+    spawn-count: 4
+    spawn-first: 1.0
+    icon: SKELETON_SKULL
+    weapon: BONE
+    mob: SKELETON
+    model: clash_witch
+    hitbox: [0.9, 2.1]
+  sparky:
+    name: 스파키
+    elixir: 6
+    type: TROOP
+    hp: 1451
+    damage: 1331
+    splash: 1.8
+    hit-speed: 4.0             # 4초 충전 후 발사
+    speed: SLOW
+    range: 5.0
+    targets: GROUND
+    stun-resets-charge: true   # 감전(잽, 일렉트로 마법사, 스턴)되면 충전 초기화
+    icon: LIGHTNING_ROD
+    weapon: LIGHTNING_ROD
+    mob: ZOMBIE
+    model: clash_sparky
+    hitbox: [1.6, 1.8]
+  zappies:
+    name: 감전돌이
+    elixir: 4
+    type: SQUAD
+    count: 3
+    hp: 529
+    damage: 117
+    hit-speed: 2.3
+    speed: MEDIUM
+    range: 4.5
+    targets: AIR_GROUND
+    zap: true                  # 즉발 전기 공격, 맞으면 0.5초 스턴 (스파키 충전 초기화)
+    stun: 0.5
+    icon: COPPER_BULB
+    weapon: LIGHTNING_ROD
+    mob: ZOMBIE
+    baby: true
+    model: clash_zappies           # 작은 전기 기계 (코일 달린 몸통 + 짧은 다리)
+    hitbox: [0.8, 1.1]
+  night_witch:
+    name: 암흑 마녀
+    elixir: 4
+    type: TROOP
+    hp: 906
+    damage: 314
+    hit-speed: 1.3
+    speed: MEDIUM
+    range: 1.6
+    targets: GROUND
+    spawn: bats                # 배치 1초 뒤부터 5초마다 박쥐 2마리
+    spawn-every: 5
+    spawn-count: 2
+    spawn-first: 1.0
+    death-spawn: bats          # 죽으면 박쥐 1마리
+    death-spawn-count: 1
+    icon: PHANTOM_MEMBRANE
+    weapon: NETHERITE_HOE
+    mob: ZOMBIE
+    model: clash_night_witch
+    hitbox: [1.0, 2.2]
+  pekka:
+    name: 페카
+    elixir: 7
+    type: TROOP
+    hp: 3760
+    damage: 842
+    hit-speed: 1.8
+    speed: SLOW
+    range: 1.2
+    targets: GROUND
+    icon: NETHERITE_SWORD
+    weapon: NETHERITE_SWORD
+    mob: ZOMBIE
+    model: clash_pekka
+    hitbox: [1.7, 3.3]
+  x_bow:
+    name: 대형 석궁
+    elixir: 6
+    type: BUILDING
+    hp: 1600
+    damage: 61
+    hit-speed: 0.4
+    range: 11.5
+    targets: GROUND
+    deploy: 3.5
+    lifetime: 30
+    size: 3
+    shot: BOLT
+    shot-height: 2.0           # 화살이 나가는 높이 (블록)
+    turret: true               # 위쪽 석궁만 돌아감 (base / top 본)
+    icon: CROSSBOW
+    helmet: CROSSBOW
+    model: clash_x_bow
+    hitbox: [2.6, 2.4]
+  dark_prince:
+    name: 다크 프린스
+    elixir: 4
+    type: TROOP
+    hp: 1200
+    shield: 256                # 실드가 먼저 맞음 (깨지는 공격의 남은 피해는 무시)
+    damage: 266
+    splash: 1.1
+    hit-speed: 1.4
+    speed: MEDIUM
+    range: 1.2
+    targets: GROUND
+    charge: true
+    charge-distance: 3.0
+    charge-damage: 532
+    icon: MACE
+    weapon: MACE
+    mob: ZOMBIE
+    model: clash_dark_prince
+    hitbox: [1.4, 2.4]
+  cannon_cart:
+    name: 대포 카트
+    elixir: 5
+    type: TROOP
+    ai-only: true
+    hp: 1809
+    damage: 212
+    hit-speed: 0.9
+    speed: MEDIUM
+    range: 5.5
+    targets: GROUND
+    shot: CANNONBALL
+    transform-at: 0.5          # 체력 절반 이하 → 그 자리에서 부서진 대포(건물)로
+    transform-into: cannon_cart_broken
+    icon: MINECART
+    weapon: AIR
+    mob: ZOMBIE
+    model: clash_cannon_cart
+    hitbox: [2.0, 2.1]
+  cannon_cart_broken:
+    name: 부서진 대포 카트
+    deck: false
+    elixir: 0
+    type: BUILDING
+    hp: 904
+    damage: 212
+    hit-speed: 0.9
+    range: 5.5
+    targets: GROUND
+    deploy: 0.5
+    lifetime: 15
+    size: 2
+    turret: true
+    icon: DISPENSER
+    helmet: DISPENSER
+    model: clash_cannon_cart_broken
+    hitbox: [2.1, 1.8]
+  battle_ram:
+    name: 배틀 램
+    elixir: 4
+    type: TROOP
+    hp: 967
+    damage: 286
+    hit-speed: 0.4
+    speed: MEDIUM
+    range: 0.5
+    targets: BUILDINGS
+    charge: true
+    charge-distance: 3.0
+    charge-damage: 573
+    break-on-hit: true         # 건물을 들이받으면 부서지고 바바리안 2명
+    death-spawn: barbarians
+    death-spawn-count: 2
+    icon: OAK_LOG
+    weapon: AIR
+    mob: ZOMBIE
+    model: clash_battle_ram
+    hitbox: [2.0, 1.8]
+  wizard:
+    name: 마법사
+    elixir: 5
+    type: TROOP
+    hp: 832
+    damage: 281
+    splash: 1.5
+    hit-speed: 1.4
+    speed: MEDIUM
+    range: 5.5
+    targets: AIR_GROUND
+    shot: FIREBALL
+    icon: FIRE_CHARGE
+    weapon: BLAZE_ROD
+    mob: SKELETON
+    model: clash_wizard
+    hitbox: [0.9, 2.1]
+  dart_goblin:
+    name: 다트 고블린
+    elixir: 3
+    type: TROOP
+    hp: 261
+    damage: 156
+    hit-speed: 0.8
+    speed: VERY_FAST
+    range: 6.5
+    targets: AIR_GROUND
+    shot: ARROW
+    icon: BAMBOO
+    weapon: BAMBOO
+    mob: ZOMBIE
+    baby: true
+    model: clash_dart_goblin
+    hitbox: [0.7, 1.2]
+  heal_spirit:
+    name: 힐링 스피릿
+    elixir: 1
+    type: TROOP
+    ai-only: true
+    kamikaze: true
+    hp: 215
+    damage: 110
+    splash: 1.5
+    heal: 100                  # 0.25초마다 100씩 4번 (총 400)
+    heal-pulses: 4
+    heal-radius: 2.5
+    hit-speed: 0.1
+    speed: VERY_FAST
+    range: 2.5
+    targets: AIR_GROUND
+    icon: GLOWSTONE_DUST
+    mob: ZOMBIE
+    baby: true
+    model: clash_heal_spirit
+    hitbox: [0.7, 0.8]
+  elixir_golem:
+    name: 엘릭서 골렘
+    elixir: 3
+    type: TROOP
+    hp: 1569
+    damage: 253
+    hit-speed: 1.1
+    speed: SLOW
+    range: 0.8
+    targets: BUILDINGS
+    death-spawn: elixir_golemite
+    death-spawn-count: 2
+    death-elixir: 1.0          # 죽으면 상대가 엘릭서 1 (조각까지 다 죽이면 총 4)
+    icon: AMETHYST_BLOCK
+    weapon: AIR
+    mob: ZOMBIE
+    model: clash_elixir_golem
+    hitbox: [2.0, 2.8]
+  elixir_golemite:
+    name: 엘릭서 골렘 조각
+    deck: false
+    elixir: 0
+    type: TROOP
+    ai-only: true
+    hp: 762
+    damage: 128
+    hit-speed: 1.1
+    speed: MEDIUM
+    range: 0.8
+    targets: BUILDINGS
+    death-spawn: elixir_blob
+    death-spawn-count: 2
+    death-elixir: 0.5
+    icon: AMETHYST_CLUSTER
+    weapon: AIR
+    mob: ZOMBIE
+    model: clash_elixir_golemite
+    hitbox: [1.3, 1.6]
+  elixir_blob:
+    name: 엘릭서 방울
+    deck: false
+    elixir: 0
+    type: TROOP
+    ai-only: true
+    hp: 360
+    damage: 64
+    hit-speed: 1.1
+    speed: FAST
+    range: 0.8
+    targets: BUILDINGS
+    death-elixir: 0.5
+    icon: AMETHYST_SHARD
+    weapon: AIR
+    mob: ZOMBIE
+    baby: true
+    model: clash_elixir_blob
+    hitbox: [0.7, 0.7]
+  bomb_tower:
+    name: 폭탄 타워
+    elixir: 4
+    type: BUILDING
+    hp: 1356
+    damage: 222
+    splash: 1.5
+    hit-speed: 1.8
+    range: 6.0
+    targets: GROUND
+    lifetime: 30
+    size: 2
+    shot: BOMB
+    shot-height: 2.8           # 꼭대기 폭탄병 손 높이
+    turret: true               # 위쪽 폭탄병만 돌아감
+    death-damage: 222          # 부서지면 3초 뒤 폭탄 (공중 + 지상)
+    death-radius: 3.0
+    death-delay: 3.0
+    death-model: clash_bomb    # 부서진 자리에 남는 폭탄 모델 (탑 모델은 사라짐)
+    icon: TNT
+    helmet: TNT
+    model: clash_bomb_tower
+    hitbox: [2.0, 3.2]
+  # ---- 3.6.0 새 카드 16종 (수치: clashroyale.fandom.com 11레벨, 2026년 10월 기준 밸런스) ----
+  elixir_collector:
+    name: 엘릭서 정제소
+    elixir: 6
+    type: BUILDING
+    hp: 1070
+    damage: 0
+    lifetime: 93
+    size: 3
+    elixir-every: 13           # 13초마다 엘릭서 1
+    elixir-amount: 1
+    death-elixir-self: 1       # 부서지면 우리 팀 엘릭서 1
+    targets: GROUND
+    icon: BREWING_STAND
+    helmet: BREWING_STAND
+    model: clash_elixir_collector
+    hitbox: [2.6, 2.6]
+  royal_hogs:
+    name: 로얄 호그
+    elixir: 5
+    type: SQUAD
+    count: 4
+    hp: 837
+    damage: 74
+    hit-speed: 1.2
+    speed: VERY_FAST
+    range: 0.7
+    targets: BUILDINGS
+    river-jump: true           # 강을 뛰어넘음
+    icon: GOLDEN_CARROT
+    weapon: AIR
+    mob: ZOMBIE
+    model: clash_royal_hog
+    hitbox: [1.0, 1.15]
+  valkyrie:
+    name: 발키리
+    elixir: 4
+    type: TROOP
+    hp: 1907
+    damage: 266
+    splash: 2.0
+    splash-self: true          # 자기 주위 360도 회전 베기
+    hit-speed: 1.5
+    speed: MEDIUM
+    range: 1.2
+    targets: GROUND
+    icon: IRON_AXE
+    weapon: IRON_AXE
+    mob: ZOMBIE
+    model: clash_valkyrie
+    hitbox: [1.0, 1.8]
+  guards:
+    name: 가드
+    elixir: 3
+    type: SQUAD
+    count: 3
+    hp: 81
+    shield: 256                # 방패 (깨지면 모델에서 사라짐)
+    damage: 117
+    hit-speed: 1.0
+    speed: FAST
+    range: 1.6
+    targets: GROUND
+    icon: SHIELD
+    weapon: TRIDENT
+    mob: SKELETON
+    model: clash_guard
+    hitbox: [0.8, 1.6]
+  giant_skeleton:
+    name: 자이언트 해골
+    elixir: 6
+    type: TROOP
+    hp: 3126
+    damage: 276
+    hit-speed: 1.3
+    speed: MEDIUM
+    range: 0.8
+    targets: GROUND
+    death-damage: 888          # 죽으면 폭탄을 떨굼 → 3초 뒤 폭발 (공중 + 지상 + 타워)
+    death-radius: 3.0
+    death-delay: 3.0
+    death-model: clash_bomb
+    icon: WITHER_SKELETON_SKULL
+    weapon: AIR
+    mob: SKELETON
+    model: clash_giant_skeleton
+    hitbox: [1.6, 3.6]
+  bowler:
+    name: 볼러
+    elixir: 5
+    type: TROOP
+    hp: 2081
+    damage: 289
+    hit-speed: 2.5
+    speed: SLOW
+    range: 4.0
+    targets: GROUND
+    roll: true                 # 바위를 굴려 일직선으로 관통 + 밀침
+    pierce-extra: 3.0          # 대상 뒤로 더 굴러가는 거리 (타일)
+    knockback: 1.0
+    projectile-model: clash_boulder
+    icon: COBBLESTONE
+    weapon: AIR
+    mob: ZOMBIE
+    model: clash_bowler
+    hitbox: [1.8, 2.9]
+  wall_breakers:
+    name: 해골 돌격병
+    elixir: 2
+    type: SQUAD
+    count: 2
+    ai-only: true
+    hp: 330
+    damage: 302
+    splash: 1.5
+    hit-speed: 1.2
+    speed: VERY_FAST
+    range: 0.5
+    targets: BUILDINGS
+    explode-on-hit: true       # 건물에 닿으면 폭탄과 함께 자폭 (범위 피해)
+    icon: GUNPOWDER
+    weapon: AIR
+    mob: SKELETON
+    model: clash_wall_breaker
+    hitbox: [0.6, 1.1]
+  hunter:
+    name: 사냥꾼
+    elixir: 4
+    type: TROOP
+    hp: 885
+    damage: 84                 # 산탄 1발 피해 × 10발 (가까울수록 많이 맞음)
+    pellets: 10
+    hit-speed: 2.2
+    speed: MEDIUM
+    range: 4.0
+    targets: AIR_GROUND
+    icon: FLINT_AND_STEEL
+    weapon: CROSSBOW
+    mob: ZOMBIE
+    model: clash_hunter
+    hitbox: [1.0, 2.15]
+  executioner:
+    name: 도끼맨
+    elixir: 5
+    type: TROOP
+    hp: 1280
+    damage: 168                # 도끼가 갈 때 / 돌아올 때 각각
+    hit-speed: 2.4
+    speed: MEDIUM
+    range: 4.5
+    targets: AIR_GROUND
+    axe: true
+    pierce-extra: 3.0
+    icon: NETHERITE_AXE
+    weapon: NETHERITE_AXE
+    mob: ZOMBIE
+    model: clash_executioner
+    hitbox: [1.2, 2.35]
+  princess:
+    name: 프린세스
+    elixir: 3
+    type: TROOP
+    hp: 261
+    damage: 168
+    splash: 2.0
+    hit-speed: 3.0
+    speed: MEDIUM
+    range: 9.0
+    deploy: 1.2
+    targets: AIR_GROUND
+    shot: ARROW
+    icon: BOW
+    weapon: BOW
+    mob: SKELETON
+    model: clash_princess
+    hitbox: [0.8, 1.7]
+  ice_wizard:
+    name: 얼음 마법사
+    elixir: 3
+    type: TROOP
+    hp: 688
+    damage: 89
+    splash: 1.5
+    hit-speed: 1.7
+    speed: MEDIUM
+    range: 5.5
+    targets: AIR_GROUND
+    shot: SNOWBALL
+    hit-slow: 0.30             # 맞은 적 30% 감속 2.5초
+    hit-slow-duration: 2.5
+    spawn-damage: 84           # 배치할 때 냉기 폭발
+    spawn-radius: 3.0
+    icon: BLUE_ICE
+    weapon: PACKED_ICE
+    mob: SKELETON
+    model: clash_ice_wizard
+    hitbox: [0.9, 1.75]
+  lumberjack:
+    name: 나무꾼
+    elixir: 4
+    type: TROOP
+    hp: 1282
+    damage: 256
+    hit-speed: 0.8
+    speed: VERY_FAST
+    range: 0.7
+    targets: GROUND
+    death-spell: rage          # 죽으면 그 자리에 분노 마법
+    icon: STONE_AXE
+    weapon: STONE_AXE
+    mob: ZOMBIE
+    model: clash_lumberjack
+    hitbox: [0.9, 1.8]
+  magic_archer:
+    name: 마법 아처
+    elixir: 4
+    type: TROOP
+    hp: 529
+    damage: 133
+    hit-speed: 1.1
+    speed: MEDIUM
+    range: 7.0
+    targets: AIR_GROUND
+    pierce: true               # 화살이 일직선으로 관통 (대상 뒤로 4타일 더)
+    pierce-extra: 4.0
+    icon: SPECTRAL_ARROW
+    weapon: BOW
+    mob: SKELETON
+    model: clash_magic_archer
+    hitbox: [0.9, 1.95]
+  bandit:
+    name: 도둑
+    elixir: 3
+    type: TROOP
+    hp: 906
+    damage: 194
+    hit-speed: 1.0
+    speed: FAST
+    range: 0.75
+    targets: GROUND
+    dash: true                 # 3.5~6타일 떨어진 적에게 대시 (대시 중 무적, 2배 피해)
+    dash-min: 3.5
+    dash-max: 6.0
+    dash-damage: 389
+    icon: WOODEN_SHOVEL
+    weapon: WOODEN_SHOVEL
+    mob: ZOMBIE
+    model: clash_bandit
+    hitbox: [0.8, 1.7]
+  inferno_dragon:
+    name: 인페르노 드래곤
+    elixir: 4
+    type: TROOP
+    hp: 1295
+    damage: 35
+    damage-stages: [35, 120, 422]  # 같은 대상을 2초마다 더 세게
+    stage-seconds: 2.0
+    hit-speed: 0.4
+    speed: MEDIUM
+    range: 3.5
+    targets: AIR_GROUND
+    air: true
+    icon: CAMPFIRE
+    weapon: AIR
+    mob: VEX
+    model: clash_inferno_dragon
+    hitbox: [1.6, 1.4]
+  mega_knight:
+    name: 메가 나이트
+    elixir: 7
+    type: TROOP
+    hp: 3993
+    damage: 268
+    splash: 1.3
+    hit-speed: 1.7
+    speed: MEDIUM
+    range: 1.2
+    targets: GROUND
+    spawn-damage: 430          # 떨어질 때 쿵
+    spawn-radius: 2.2
+    jump-min: 3.5              # 3.5~5타일 떨어진 적에게 점프 (점프 피해 537)
+    jump-max: 5.0
+    jump-damage: 537
+    icon: NETHERITE_CHESTPLATE
+    weapon: AIR
+    mob: ZOMBIE
+    model: clash_mega_knight
+    hitbox: [2.0, 3.0]
+  lightning:
+    name: 번개 마법
+    elixir: 6
+    type: SPELL
+    damage: 1056
+    tower-damage: 317
+    radius: 3.5
+    count: 3                   # 체력 높은 순 3명
+    stun: 0.5
+    icon: LIGHTNING_ROD
+  rage:
+    name: 분노 마법
+    elixir: 2
+    type: SPELL
+    damage: 192
+    tower-damage: 58
+    radius: 3.0
+    duration: 5.5
+    boost: 0.30                # 이동 / 공격 속도 +30%
+    icon: PURPLE_DYE
+  rocket:
+    name: 로켓
+    elixir: 6
+    type: SPELL
+    damage: 1484
+    tower-damage: 371
+    radius: 2.0
+    knockback: 1.0
+    icon: FIREWORK_ROCKET
+    projectile-model: clash_rocket   # 날아가는 로켓 모델
+  earthquake:
+    name: 지진 마법
+    elixir: 3
+    type: SPELL
+    damage: 82                 # 초당 (유닛), 3번
+    building-damage: 287       # 초당 (건물)
+    tower-damage: 54           # 초당 (크라운 타워)
+    radius: 3.5
+    duration: 3
+    slow: 0.5                  # 지상 유닛 이동 -50%
+    icon: BROWN_DYE
+  tornado:
+    name: 토네이도
+    elixir: 3
+    type: SPELL
+    damage: 84                 # 0.5초마다, 2번
+    tower-damage: 29
+    radius: 5.5
+    duration: 1.05
+    pull: 0.2                  # 끌어당기는 세기 (블록/틱)
+    icon: WIND_CHARGE
+  mirror:
+    name: 반사경
+    elixir: 1                  # 표시용. 실제 비용 = 마지막에 낸 카드 + 1
+    type: SPELL
+    icon: GLASS_PANE
+  clone:
+    name: 복제 마법
+    elixir: 3
+    type: SPELL
+    radius: 3.0
+    icon: LIGHT_BLUE_DYE
+  graveyard:
+    name: 무덤 마법
+    elixir: 5
+    type: SPELL
+    radius: 4.0
+    duration: 9
+    deploy: 2.2                # 첫 해골까지 2.2초
+    spawn: skeletons
+    spawn-count: 13            # 해골 13마리
+    spawn-every: 0.5           # 0.5초마다 하나씩, 가운데 3타일 안쪽엔 안 나옴
+    icon: SKELETON_SKULL

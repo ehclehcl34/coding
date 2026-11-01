@@ -1,0 +1,507 @@
+{
+ "clash_goblin_cage": {
+  "factor": 2.4316,
+  "cur": 3.084,
+  "target": 7.5,
+  "height": 6.079
+ },
+ "clash_tesla": {
+  "factor": 1.4443,
+  "cur": 3.116,
+  "target": 4.5,
+  "height": 5.612
+ },
+ "clash_cannon": {
+  "factor": 2.1588,
+  "cur": 3.057,
+  "target": 6.6000000000000005,
+  "height": 4.262
+ },
+ "clash_bomb_tower": {
+  "factor": 2.3529,
+  "cur": 3.506,
+  "target": 8.25,
+  "height": 13.162
+ },
+ "clash_tombstone": {
+  "factor": 2.0727,
+  "cur": 3.329,
+  "target": 6.8999999999999995,
+  "height": 4.534
+ },
+ "clash_goblin_hut": {
+  "factor": 2.624,
+  "cur": 2.858,
+  "target": 7.5,
+  "height": 9.414
+ },
+ "clash_barbarian_hut": {
+  "factor": 2.4922,
+  "cur": 3.009,
+  "target": 7.5,
+  "height": 7.178
+ },
+ "clash_x_bow": {
+  "factor": 1.8782,
+  "cur": 2.396,
+  "target": 4.5,
+  "height": 3.24
+ },
+ "clash_inferno": {
+  "factor": 2.5727,
+  "cur": 2.915,
+  "target": 7.5,
+  "height": 11.503
+ },
+ "clash_elixir_collector": {
+  "factor": 2.8133,
+  "cur": 2.932,
+  "target": 8.25,
+  "height": 8.776
+ },
+ "clash_archer": {
+  "factor": 3.6923,
+  "cur": 0.812,
+  "target": 3,
+  "height": 7.177
+ },
+ "clash_firecracker": {
+  "factor": 2.7746,
+  "cur": 1.081,
+  "target": 3,
+  "height": 4.578
+ },
+ "clash_skeletons": {
+  "factor": 3.9513,
+  "cur": 0.759,
+  "target": 3,
+  "height": 5.878
+ },
+ "clash_goblin": {
+  "factor": 2.0513,
+  "cur": 1.462,
+  "target": 3,
+  "height": 3.256
+ },
+ "clash_spear_goblin": {
+  "factor": 1.7003,
+  "cur": 1.764,
+  "target": 3,
+  "height": 3.478
+ },
+ "clash_bomber": {
+  "factor": 4.3204,
+  "cur": 0.694,
+  "target": 3,
+  "height": 6.751
+ },
+ "clash_wall_breaker": {
+  "factor": 2.9125,
+  "cur": 1.03,
+  "target": 3,
+  "height": 6.377
+ },
+ "clash_princess": {
+  "factor": 3.4532,
+  "cur": 0.869,
+  "target": 3,
+  "height": 7.403
+ },
+ "clash_dart_goblin": {
+  "factor": 2.3645,
+  "cur": 1.269,
+  "target": 3,
+  "height": 4.25
+ },
+ "clash_musketeer": {
+  "factor": 1.8877,
+  "cur": 1.589,
+  "target": 3,
+  "height": 4.106
+ },
+ "clash_minion": {
+  "factor": 2.4135,
+  "cur": 1.243,
+  "target": 3,
+  "height": 3.59
+ },
+ "clash_fire_spirit": {
+  "factor": 4.0678,
+  "cur": 0.738,
+  "target": 3,
+  "height": 5.136
+ },
+ "clash_ice_spirit": {
+  "factor": 2.7273,
+  "cur": 1.1,
+  "target": 3,
+  "height": 2.693
+ },
+ "clash_electro_spirit": {
+  "factor": 4.0,
+  "cur": 0.75,
+  "target": 3,
+  "height": 4.2
+ },
+ "clash_heal_spirit": {
+  "factor": 3.1169,
+  "cur": 0.962,
+  "target": 3,
+  "height": 2.922
+ },
+ "clash_bandit": {
+  "factor": 3.6923,
+  "cur": 0.812,
+  "target": 3,
+  "height": 6.877
+ },
+ "clash_guard": {
+  "factor": 3.0722,
+  "cur": 0.976,
+  "target": 3,
+  "height": 7.488
+ },
+ "clash_barbarian": {
+  "factor": 3.913,
+  "cur": 1.15,
+  "target": 4.5,
+  "height": 7.239
+ },
+ "clash_elite_barbarian": {
+  "factor": 3.4783,
+  "cur": 1.294,
+  "target": 4.5,
+  "height": 6.565
+ },
+ "clash_pekka": {
+  "factor": 2.2131,
+  "cur": 3.05,
+  "target": 6.75,
+  "height": 8.753
+ },
+ "clash_mini_pekka": {
+  "factor": 4.186,
+  "cur": 1.075,
+  "target": 4.5,
+  "height": 6.384
+ },
+ "clash_witch": {
+  "factor": 2.9508,
+  "cur": 1.525,
+  "target": 4.5,
+  "height": 8.613
+ },
+ "clash_night_witch": {
+  "factor": 3.2,
+  "cur": 1.406,
+  "target": 4.5,
+  "height": 9.64
+ },
+ "clash_mother_witch": {
+  "factor": 4.5283,
+  "cur": 0.994,
+  "target": 4.5,
+  "height": 12.821
+ },
+ "clash_magic_archer": {
+  "factor": 4.2857,
+  "cur": 1.05,
+  "target": 4.5,
+  "height": 11.784
+ },
+ "clash_knight": {
+  "factor": 4.3373,
+  "cur": 1.038,
+  "target": 4.5,
+  "height": 7.645
+ },
+ "clash_wizard": {
+  "factor": 4.3902,
+  "cur": 1.025,
+  "target": 4.5,
+  "height": 9.11
+ },
+ "clash_ice_wizard": {
+  "factor": 4.8,
+  "cur": 0.938,
+  "target": 4.5,
+  "height": 10.98
+ },
+ "clash_electro_wizard": {
+  "factor": 3.7232,
+  "cur": 1.209,
+  "target": 4.5,
+  "height": 9.587
+ },
+ "clash_zappies": {
+  "factor": 3.913,
+  "cur": 1.15,
+  "target": 4.5,
+  "height": 5.527
+ },
+ "clash_valkyrie": {
+  "factor": 4.8322,
+  "cur": 0.931,
+  "target": 4.5,
+  "height": 10.45
+ },
+ "clash_hunter": {
+  "factor": 3.7113,
+  "cur": 1.212,
+  "target": 4.5,
+  "height": 8.954
+ },
+ "clash_miner": {
+  "factor": 4.0909,
+  "cur": 1.1,
+  "target": 4.5,
+  "height": 10.534
+ },
+ "clash_executioner": {
+  "factor": 4.0909,
+  "cur": 1.1,
+  "target": 4.5,
+  "height": 9.767
+ },
+ "clash_lumberjack": {
+  "factor": 3.7306,
+  "cur": 1.206,
+  "target": 4.5,
+  "height": 8.021
+ },
+ "clash_golem": {
+  "factor": 2.1164,
+  "cur": 3.544,
+  "target": 7.5,
+  "height": 7.667
+ },
+ "clash_elixir_golem": {
+  "factor": 2.0526,
+  "cur": 4.385,
+  "target": 9,
+  "height": 8.544
+ },
+ "clash_ice_golem": {
+  "factor": 1.9324,
+  "cur": 3.105,
+  "target": 6,
+  "height": 6.261
+ },
+ "clash_goblin_brawler": {
+  "factor": 3.4909,
+  "cur": 1.719,
+  "target": 6,
+  "height": 7.898
+ },
+ "clash_mega_knight": {
+  "factor": 2.2222,
+  "cur": 4.05,
+  "target": 9,
+  "height": 8.0
+ },
+ "clash_giant": {
+  "factor": 2.7737,
+  "cur": 3.407,
+  "target": 9.45,
+  "height": 13.203
+ },
+ "clash_giant_skeleton": {
+  "factor": 2.5284,
+  "cur": 3.738,
+  "target": 9.45,
+  "height": 12.611
+ },
+ "clash_royal_giant": {
+  "factor": 2.47,
+  "cur": 3.826,
+  "target": 9.45,
+  "height": 11.763
+ },
+ "clash_bowler": {
+  "factor": 2.4895,
+  "cur": 2.711,
+  "target": 6.75,
+  "height": 8.023
+ },
+ "clash_baby_dragon": {
+  "factor": 2.9143,
+  "cur": 1.75,
+  "target": 5.1,
+  "height": 4.626
+ },
+ "clash_electro_dragon": {
+  "factor": 2.9143,
+  "cur": 1.75,
+  "target": 5.1,
+  "height": 4.772
+ },
+ "clash_inferno_dragon": {
+  "factor": 2.9143,
+  "cur": 1.75,
+  "target": 5.1,
+  "height": 4.918
+ },
+ "clash_lava_hound": {
+  "factor": 1.1591,
+  "cur": 4.4,
+  "target": 5.1,
+  "height": 2.396
+ },
+ "clash_flying_machine": {
+  "factor": 2.1619,
+  "cur": 2.081,
+  "target": 4.5,
+  "height": 4.34
+ },
+ "clash_balloon": {
+  "factor": 3.3803,
+  "cur": 1.997,
+  "target": 6.75,
+  "height": 15.37
+ },
+ "clash_sparky": {
+  "factor": 3.5332,
+  "cur": 1.783,
+  "target": 6.300000000000001,
+  "height": 5.808
+ },
+ "clash_skeleton_balloon": {
+  "factor": 2.4733,
+  "cur": 2.426,
+  "target": 6,
+  "height": 10.78
+ },
+ "clash_cannon_cart": {
+  "factor": 1.3458,
+  "cur": 3.344,
+  "target": 4.5,
+  "height": 3.092
+ },
+ "clash_prince": {
+  "factor": 1.2984,
+  "cur": 2.888,
+  "target": 3.75,
+  "height": 3.879
+ },
+ "clash_dark_prince": {
+  "factor": 1.2984,
+  "cur": 2.888,
+  "target": 3.75,
+  "height": 3.879
+ },
+ "clash_hog_rider": {
+  "factor": 1.9709,
+  "cur": 1.903,
+  "target": 3.75,
+  "height": 4.558
+ },
+ "clash_ram_rider": {
+  "factor": 2.024,
+  "cur": 1.853,
+  "target": 3.75,
+  "height": 4.845
+ },
+ "clash_royal_hog": {
+  "factor": 2.1377,
+  "cur": 1.544,
+  "target": 3.3000000000000003,
+  "height": 2.672
+ },
+ "clash_electro_giant": {
+  "factor": 2.7198,
+  "cur": 3.475,
+  "target": 9.45,
+  "height": 12.971
+ },
+ "clash_bat": {
+  "factor": 2.4135,
+  "cur": 1.406,
+  "target": 3.394,
+  "height": 2.232,
+  "follow": "clash_minion"
+ },
+ "clash_mega_minion": {
+  "factor": 2.4135,
+  "cur": 1.668,
+  "target": 4.025,
+  "height": 5.008,
+  "follow": "clash_minion"
+ },
+ "clash_cursed_hog": {
+  "factor": 2.1377,
+  "cur": 1.288,
+  "target": 2.752,
+  "height": 1.857,
+  "follow": "clash_royal_hog"
+ },
+ "clash_golemite": {
+  "factor": 2.1164,
+  "cur": 1.266,
+  "target": 2.679,
+  "height": 2.738,
+  "follow": "clash_golem"
+ },
+ "clash_elixir_golemite": {
+  "factor": 2.0526,
+  "cur": 1.462,
+  "target": 3.0,
+  "height": 2.848,
+  "follow": "clash_elixir_golem"
+ },
+ "clash_elixir_blob": {
+  "factor": 2.0526,
+  "cur": 0.462,
+  "target": 0.949,
+  "height": 1.001,
+  "follow": "clash_elixir_golem"
+ },
+ "clash_lava_pup": {
+  "factor": 1.1591,
+  "cur": 1.288,
+  "target": 1.492,
+  "height": 0.833,
+  "follow": "clash_lava_hound"
+ },
+ "clash_battle_ram": {
+  "factor": 3.913,
+  "cur": 2.494,
+  "target": 9.758,
+  "height": 10.59,
+  "follow": "clash_barbarian"
+ },
+ "clash_cannon_cart_broken": {
+  "factor": 1.3458,
+  "cur": 3.344,
+  "target": 4.5,
+  "height": 2.971,
+  "follow": "clash_cannon_cart"
+ },
+ "clash_boulder": {
+  "factor": 2.4895,
+  "cur": 1.188,
+  "target": 2.956,
+  "height": 2.956,
+  "follow": "clash_bowler"
+ },
+ "clash_executioner_axe": {
+  "factor": 4.0909,
+  "cur": 1.481,
+  "target": 6.06,
+  "height": 0.562,
+  "follow": "clash_executioner"
+ },
+ "clash_bomb": {
+  "factor": 2.5284,
+  "cur": 1.375,
+  "target": 3.477,
+  "height": 5.673,
+  "follow": "clash_giant_skeleton"
+ },
+ "clash_goblin_barrel": {
+  "factor": 2.0513,
+  "cur": 2.077,
+  "target": 4.261,
+  "height": 5.517,
+  "follow": "clash_goblin"
+ }
+}

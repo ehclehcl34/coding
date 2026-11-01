@@ -1,0 +1,535 @@
+"""bbgen2 — high-quality Blockbench (.bbmodel) generator for ModelEngine R4.
+
+* Every cube face gets its own hand-painted texture region (1 texel per model pixel by default)
+* Materials: metal, cloth, skin, fur, stone, brick, wood, leather, bone, glow, scale, hair, gem, rope, plain
+* Face decals painted onto texture (eyes, visor, runes, ...)
+* All faces packed into one atlas per model; animations use catmullrom easing
+Units: pixels (16 = 1 block). Front faces NORTH (-Z). Origin = feet centre.
+"""
+import base64, io, json, math, random, uuid as _uuid
+import numpy as np
+from PIL import Image
+
+
+def uid():
+    return str(_uuid.uuid4())
+
+
+def hexrgb(h):
+    h = h.lstrip('#')
+    return np.array([int(h[i:i + 2], 16) for i in (0, 2, 4)], dtype=float)
+
+
+def clamp(a):
+    return np.clip(a, 0, 255)
+
+
+# ---------------------------------------------------------------- painters
+def _noise(rng, h, w, amt):
+    return 1.0 + np.random.default_rng(rng.randrange(1 << 30)).uniform(-amt, amt, (h, w, 1))
+
+
+def _vgrad(h, w, top=1.08, bot=0.88):
+    g = np.linspace(top, bot, max(h, 1)).reshape(h, 1, 1)
+    return np.repeat(g, w, axis=1)
+
+
+def _border(img, f=0.72, width=1):
+    h, w, _ = img.shape
+    if h > 2 * width and w > 2 * width:
+        img[:width, :] *= f
+        img[-width:, :] *= f
+        img[:, :width] *= f
+        img[:, -width:] *= f
+    return img
+
+
+def paint(kind, base, w, h, rng, face, opts):
+    c = hexrgb(base)
+    img = np.ones((h, w, 3)) * c
+    vertical = face not in ('up', 'down')
+    if kind == 'metal':
+        img *= _vgrad(h, w, 1.15, 0.82) if vertical else 1.05
+        img *= _noise(rng, h, w, 0.03)
+        if h > 2:
+            img[0:1, :] = clamp(img[0:1, :] * 1.25 + 15)     # 위쪽 하이라이트
+        if w > 4 and vertical:
+            x = max(1, w // 4)
+            img[:, x:x + 1] = clamp(img[:, x:x + 1] * 1.12 + 8)  # 세로 광택 줄
+        _border(img, 0.68)
+        if opts.get('rivets') and w >= 6 and h >= 6:
+            for (yy, xx) in ((1, 1), (1, w - 2), (h - 2, 1), (h - 2, w - 2)):
+                img[yy, xx] = clamp(c * 1.4 + 20)
+    elif kind == 'cloth':
+        img *= _noise(rng, h, w, 0.05)
+        if vertical:
+            for x in range(1, w, 3):
+                img[:, x] *= 0.9                               # 주름
+            img *= _vgrad(h, w, 1.05, 0.9)
+        # 직조 무늬
+        yy, xx = np.mgrid[0:h, 0:w]
+        img[((yy + xx) % 2) == 0] *= 1.03
+        _border(img, 0.8)
+    elif kind == 'skin':
+        img *= _noise(rng, h, w, 0.025)
+        if vertical:
+            img *= _vgrad(h, w, 1.04, 0.92)
+    elif kind == 'fur':
+        img *= _noise(rng, h, w, 0.06)
+        for _ in range(max(1, w * h // 6)):
+            x, y = rng.randrange(w), rng.randrange(h)
+            l = rng.randint(1, 3)
+            img[y:y + l, x] *= rng.choice((0.8, 1.15))
+        if vertical:
+            img *= _vgrad(h, w, 1.05, 0.88)
+    elif kind in ('stone', 'brick'):
+        img *= _noise(rng, h, w, 0.09)
+        if kind == 'brick' and h >= 4 and w >= 4:
+            bh, bw = opts.get('bh', 4), opts.get('bw', 8)
+            for y in range(0, h, bh):
+                img[y:y + 1, :] *= 0.72
+                off = (y // bh) % 2 * (bw // 2)
+                for x in range(off, w, bw):
+                    img[y:y + bh, x:x + 1] *= 0.72
+        for _ in range(max(1, (w * h) // 40)):                 # 얼룩 / 균열
+            x, y = rng.randrange(w), rng.randrange(h)
+            img[y, x] *= 0.75
+        if vertical:
+            img *= _vgrad(h, w, 1.06, 0.9)
+        _border(img, 0.85)
+    elif kind == 'soft':          # 테두리 없는 부드러운 피부 (조각을 쌓아도 줄무늬 안 보임)
+        img *= _noise(rng, h, w, 0.025)
+    elif kind == 'wood':
+        horizontal = opts.get('grain', 'h') == 'h'
+        n = h if horizontal else w
+        stripes = np.array([1.0 + 0.09 * math.sin(i * 1.7 + rng.random() * 2) for i in range(n)])
+        if horizontal:
+            img *= stripes.reshape(h, 1, 1)
+        else:
+            img *= stripes.reshape(1, w, 1)
+        img *= _noise(rng, h, w, 0.04)
+        if opts.get('planks') and h >= 4 and horizontal:
+            for y in range(0, h, 3):
+                img[y:y + 1, :] *= 0.7
+        _border(img, 0.75)
+    elif kind == 'leather':
+        img *= _noise(rng, h, w, 0.05)
+        if vertical:
+            img *= _vgrad(h, w, 1.08, 0.88)
+        if w >= 8 and h >= 6 and opts.get('stitch', True):
+            for x in range(2, w - 2, 2):
+                img[1, x] = clamp(c * 1.18 + 8)
+                img[h - 2, x] = clamp(c * 1.18 + 8)
+        _border(img, 0.7)
+    elif kind == 'bone':
+        img *= _noise(rng, h, w, 0.04)
+        if vertical:
+            img *= _vgrad(h, w, 1.05, 0.86)
+        _border(img, 0.82)
+    elif kind == 'scale':
+        img *= _noise(rng, h, w, 0.04)
+        for y in range(h):
+            for x in range(w):
+                if (x + (y // 2) % 2) % 2 == 0 and y % 2 == 0:
+                    img[y, x] *= 0.86
+        if vertical:
+            img *= _vgrad(h, w, 1.08, 0.86)
+        _border(img, 0.8)
+    elif kind == 'glow':
+        yy, xx = np.mgrid[0:h, 0:w]
+        cy, cx = (h - 1) / 2, (w - 1) / 2
+        d = np.sqrt(((yy - cy) / max(h, 1)) ** 2 + ((xx - cx) / max(w, 1)) ** 2)
+        img = img * (1.25 - d.reshape(h, w, 1) * 0.8) + 30
+    elif kind == 'gem':
+        img *= _vgrad(h, w, 1.3, 0.8)
+        if h > 1 and w > 1:
+            img[0, 0] = clamp(c * 1.6 + 60)
+        _border(img, 0.7)
+    elif kind == 'hair':
+        for x in range(w):
+            img[:, x] *= 1.0 + 0.1 * math.sin(x * 2.1 + rng.random())
+        img *= _noise(rng, h, w, 0.04)
+        if vertical:
+            img *= _vgrad(h, w, 1.1, 0.85)
+    elif kind == 'rope':
+        yy, xx = np.mgrid[0:h, 0:w]
+        img[((yy + xx) % 3) == 0] *= 0.8
+    else:  # plain
+        img *= _noise(rng, h, w, 0.02)
+    if face == 'down':
+        img *= 0.75
+    return clamp(img)
+
+
+# ---------------------------------------------------------------- decals
+def decal(img, spec, rng):
+    """Paint details onto a face texture. spec: list of (shape, args)"""
+    h, w, _ = img.shape
+    for item in spec:
+        kind = item[0]
+        if kind == 'px':             # ('px', x, y, color)  fractional coords 0..1 or absolute ints
+            _, x, y, col = item
+            X = int(round(x * (w - 1))) if isinstance(x, float) else x
+            Y = int(round(y * (h - 1))) if isinstance(y, float) else y
+            if 0 <= X < w and 0 <= Y < h:
+                img[Y, X] = hexrgb(col)
+        elif kind == 'rect':         # ('rect', x0, y0, x1, y1, color) fractional, inclusive
+            _, x0, y0, x1, y1, col = item
+            X0, X1 = int(round(x0 * w)), max(int(round(x0 * w)) + 1, int(round(x1 * w)))
+            Y0, Y1 = int(round(y0 * h)), max(int(round(y0 * h)) + 1, int(round(y1 * h)))
+            img[Y0:Y1, X0:X1] = hexrgb(col)
+        elif kind == 'ering':        # ('ering', cx, cy, rx, ry, thickness(0..1 of radius), color) 타원 고리
+            _, cx, cy, rx, ry, th, col = item
+            yy, xx = np.mgrid[0:h, 0:w]
+            dd = np.sqrt((((xx + 0.5) / w - cx) / max(rx, 1e-6)) ** 2 + (((yy + 0.5) / h - cy) / max(ry, 1e-6)) ** 2)
+            m = (dd <= 1.0) & (dd >= 1.0 - th)
+            img[m] = hexrgb(col)
+        elif kind == 'lerp':         # ('lerp', color, a0, a1, axis) smooth blend toward color along y/x
+            _, col, a0, a1, ax = item
+            n = h if ax == 'y' else w
+            tt = np.clip(np.linspace(a0, a1, max(n, 1)), 0, 1)
+            tt = tt.reshape(h, 1, 1) if ax == 'y' else tt.reshape(1, w, 1)
+            img[:] = img * (1 - tt) + np.array(hexrgb(col)) * tt
+        elif kind == 'fn':           # ('fn', callable(img, rng)) free-form painter
+            item[1](img, rng)
+        elif kind == 'shade':        # ('shade', x0, y0, x1, y1, factor)
+            _, x0, y0, x1, y1, f = item
+            X0, X1 = int(round(x0 * w)), max(int(round(x0 * w)) + 1, int(round(x1 * w)))
+            Y0, Y1 = int(round(y0 * h)), max(int(round(y0 * h)) + 1, int(round(y1 * h)))
+            img[Y0:Y1, X0:X1] = clamp(img[Y0:Y1, X0:X1] * f)
+    return img
+
+
+# ---------------------------------------------------------------- model
+class Bone:
+    def __init__(self, model, name, origin, parent=None):
+        self.model, self.name, self.origin = model, name, list(origin)
+        self.parent = parent
+        self.uuid = uid()
+        self.cubes, self.children = [], []
+        if parent:
+            parent.children.append(self)
+
+    def box(self, frm, to, mat, faces=None, rot=None, rot_origin=None, decals=None, inflate=0, dens=None, hidden=False, noround=False):
+        """mat: material key. faces: {face: matkey}. decals: {face: spec}. rot: (axis, deg)"""
+        c = dict(frm=[float(v) for v in frm], to=[float(v) for v in to], mat=mat, faces=faces or {},
+                 decals=decals or {}, rot=rot,
+                 rot_origin=list(rot_origin) if rot_origin else [(frm[i] + to[i]) / 2 for i in range(3)],
+                 inflate=inflate, uuid=uid(), dens=dens, hidden=hidden, noround=noround)
+        self.cubes.append(c)
+        self.model.cubes_total += 1
+        return c
+
+
+class Model:
+    def __init__(self, name, density=1.0):
+        self.name = name
+        self.mats = {}
+        self.bones, self.roots, self.anims = [], [], []
+        self.cubes_total = 0
+        self.density = density
+
+    def mat(self, key, color, kind='plain', **opts):
+        self.mats[key] = (color, kind, opts)
+
+    def mats_(self, d):
+        for k, v in d.items():
+            if isinstance(v, str):
+                self.mat(k, v)
+            else:
+                color, kind = v[0], v[1]
+                opts = v[2] if len(v) > 2 else {}
+                self.mat(k, color, kind, **opts)
+
+    def bone(self, name, origin, parent=None):
+        b = Bone(self, name, origin, parent)
+        self.bones.append(b)
+        if parent is None:
+            self.roots.append(b)
+        return b
+
+    def hitbox(self, w, h):
+        """ModelEngine R4 hitbox bone (블록 단위). 렌더되지 않음"""
+        b = self.bone('hitbox', [0, 0, 0])
+        hw = w * 8
+        b.box([-hw, 0, -hw], [hw, h * 16, hw], self._hb_mat(), hidden=True)
+        self.hitbox_size = (w, h)
+        return b
+
+    def _hb_mat(self):
+        if 'hitbox' not in self.mats:
+            self.mat('hitbox', '#ffffff')
+        return 'hitbox'
+
+    def by_name(self, n):
+        return next((b for b in self.bones if b.name == n), None)
+
+    def anim(self, name, length, loop='loop', tracks=None, interp='catmullrom'):
+        self.anims.append(dict(name=name, length=length, loop=loop, tracks=tracks or {}, interp=interp))
+
+    # ------------------------------------------------------------ atlas
+    @staticmethod
+    def _face_dims(c, face):
+        sx = abs(c['to'][0] - c['frm'][0]); sy = abs(c['to'][1] - c['frm'][1]); sz = abs(c['to'][2] - c['frm'][2])
+        return {'north': (sx, sy), 'south': (sx, sy), 'east': (sz, sy), 'west': (sz, sy), 'up': (sx, sz), 'down': (sx, sz)}[face]
+
+    def _build_atlas(self):
+        rng = random.Random(sum(map(ord, self.name)))
+        items = []
+        for b in self.bones:
+            for c in b.cubes:
+                for face in ('north', 'east', 'south', 'west', 'up', 'down'):
+                    fw, fh = self._face_dims(c, face)
+                    d = 0 if c['hidden'] else (c['dens'] or self.density)
+                    tw = int(min(64, max(1, round(fw * d))))
+                    th = int(min(64, max(1, round(fh * d))))
+                    items.append((c, face, tw, th))
+        # shelf packing (tallest first)
+        order = sorted(range(len(items)), key=lambda i: -items[i][3])
+        size = 64
+        while True:
+            pos, x, y, row = {}, 0, 0, 0
+            ok = True
+            for i in order:
+                _, _, tw, th = items[i]
+                if x + tw > size:
+                    x, y, row = 0, y + row, 0
+                if y + th > size:
+                    ok = False
+                    break
+                pos[i] = (x, y)
+                x += tw
+                row = max(row, th)
+            if ok:
+                break
+            size *= 2
+        atlas = np.zeros((size, size, 4), dtype=np.uint8)
+        uvs = {}
+        for i, (c, face, tw, th) in enumerate(items):
+            key = c['faces'].get(face, c['mat'])
+            color, kind, opts = self.mats[key]
+            img = paint(kind, color, tw, th, rng, face, opts)
+            if face in c['decals']:
+                img = decal(img, c['decals'][face], rng)
+            X, Y = pos[i]
+            atlas[Y:Y + th, X:X + tw, :3] = img.astype(np.uint8)
+            atlas[Y:Y + th, X:X + tw, 3] = 0 if c['hidden'] else 255   # 히트박스 = 완전 투명
+            dz = c.get('dither')                      # ordered-dither alpha gradient: (a_start, a_end, axis, flip)
+            if dz and not c['hidden']:
+                a0, a1, ax = dz[0], dz[1], dz[2]
+                bay = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]) / 16.0 + 1 / 32
+                yy, xx = np.mgrid[0:th, 0:tw]
+                if face in ('up', 'down'):
+                    tt = np.full((th, tw), 0.0 if ax == 'y' else (xx + 0.5) / tw)
+                else:
+                    tt = (yy + 0.5) / th if ax == 'y' else (xx + 0.5) / tw
+                if ax == 'x' and face in ('south', 'west'):
+                    tt = 1 - tt
+                if len(dz) > 3 and dz[3]:
+                    tt = 1 - tt
+                alpha = a0 + (a1 - a0) * tt
+                atlas[Y:Y + th, X:X + tw, 3] = np.where(alpha > bay[yy % 4, xx % 4], 255, 0)
+            uvs[(c['uuid'], face)] = [X, Y, X + tw, Y + th]
+        return atlas, uvs, size
+
+    # ------------------------------------------------------------ export
+    def export(self, path):
+        atlas, uvs, size = self._build_atlas()
+        buf = io.BytesIO()
+        Image.fromarray(atlas, 'RGBA').save(buf, 'PNG')
+        data = 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
+        self.atlas_img = Image.fromarray(atlas, 'RGBA')
+        self.uvs = uvs
+        elements = []
+        for b in self.bones:
+            for c in b.cubes:
+                faces = {f: {'uv': uvs[(c['uuid'], f)], 'texture': 0} for f in ('north', 'east', 'south', 'west', 'up', 'down')}
+                el = {'name': b.name, 'box_uv': False, 'rescale': False, 'locked': False, 'render_order': 'default',
+                      'allow_mirror_modeling': True, 'from': c['frm'], 'to': c['to'], 'autouv': 0, 'color': 0,
+                      'inflate': c['inflate'], 'origin': c['rot_origin'], 'faces': faces, 'type': 'cube', 'uuid': c['uuid']}
+                if c['rot'] and c['rot'][1] != 0:
+                    ax, deg = c['rot']
+                    assert abs(deg) % 22.5 == 0 and abs(deg) <= 45, (b.name, deg)
+                    r = [0, 0, 0]
+                    r['xyz'.index(ax)] = deg
+                    el['rotation'] = r
+                elements.append(el)
+
+        def outline(b):
+            o = {'name': b.name, 'origin': b.origin, 'color': 0, 'uuid': b.uuid, 'export': True, 'mirror_uv': False,
+                 'isOpen': False, 'locked': False, 'visibility': True, 'autouv': 0,
+                 'children': [c['uuid'] for c in b.cubes] + [outline(ch) for ch in b.children]}
+            if getattr(b, 'rot', None):
+                o['rotation'] = list(b.rot)                                       # static bone rotation (any angle)
+            return o
+
+        anims = []
+        for a in self.anims:
+            animators = {}
+            for bn, chans in a['tracks'].items():
+                bone = self.by_name(bn)
+                if bone is None:
+                    continue
+                kfs = []
+                for ch, pts in chans.items():
+                    for t, v in pts:
+                        kfs.append({'channel': ch, 'data_points': [{'x': f'{v[0]:g}', 'y': f'{v[1]:g}', 'z': f'{v[2]:g}'}],
+                                    'uuid': uid(), 'time': round(t, 4), 'color': -1,
+                                    'interpolation': a.get('ib', {}).get(bn, a['interp'])})
+                animators[bone.uuid] = {'name': bn, 'type': 'bone', 'keyframes': kfs}
+            anims.append({'uuid': uid(), 'name': ('deploy' if a['name'] == 'spawn' else a['name']), 'loop': a['loop'], 'override': False, 'length': a['length'],
+                          'snapping': 20, 'selected': False, 'anim_time_update': '', 'blend_weight': '',
+                          'start_delay': '', 'loop_delay': '', 'animators': animators})
+        doc = {'meta': {'format_version': '4.5', 'model_format': 'free', 'box_uv': False},
+               'name': self.name, 'model_identifier': self.name, 'visible_box': [1, 1, 0], 'variable_placeholders': '',
+               'variable_placeholder_buttons': [], 'timeline_setups': [], 'unhandled_root_fields': {},
+               'resolution': {'width': size, 'height': size}, 'elements': elements,
+               'outliner': [outline(r) for r in self.roots],
+               'textures': [{'path': '', 'name': self.name + '.png', 'folder': '', 'namespace': '', 'id': '0',
+                             'width': size, 'height': size, 'uv_width': size, 'uv_height': size, 'particle': False,
+                             'layers_enabled': False, 'sync_to_project': '', 'render_mode': 'default', 'render_sides': 'auto',
+                             'frame_time': 1, 'frame_order_type': 'loop', 'frame_order': '', 'frame_interpolate': False,
+                             'visible': True, 'internal': True, 'saved': True, 'uuid': uid(), 'relative_path': '',
+                             'source': data}],
+               'animations': anims}
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(doc, f, ensure_ascii=False)
+        return doc
+
+    # ------------------------------------------------------------ sculpt (입체감)
+    def _subtree(self, bone):
+        out = [bone]
+        for ch in bone.children:
+            out += self._subtree(ch)
+        return out
+
+    def scale_bone(self, name, k, pivot):
+        """bone 과 그 아래 모든 큐브/본을 pivot 기준 k 배 (머리 + 모자/투구 같이 줄이기)"""
+        b = self.by_name(name)
+        if b is None:
+            return
+        P = [float(v) for v in pivot]
+        f = lambda v: [P[i] + (v[i] - P[i]) * k for i in range(3)]
+        for x in self._subtree(b):
+            if x is not b:
+                x.origin = f(x.origin)
+            for c in x.cubes:
+                c['frm'], c['to'] = f(c['frm']), f(c['to'])
+                c['rot_origin'] = f(c['rot_origin'])
+                c['inflate'] = c.get('inflate', 0) * k
+
+    def roundify(self, min_dim=3.0, ratio=0.09, rmax=0.55):
+        """각진 상자를 모서리 깎은 상자로: 축마다 한 겹씩 3개 상자로 바꿈 (12개 모서리 모따기).
+        면 무늬(decal)는 그 면이 맨 바깥인 상자에만 붙임"""
+        axis_faces = {0: ('east', 'west'), 1: ('up', 'down'), 2: ('north', 'south')}
+        for b in self.bones:
+            if b.name == 'hitbox':
+                continue
+            out = []
+            for c in b.cubes:
+                dims = [c['to'][i] - c['frm'][i] for i in range(3)]
+                mn = min(dims)
+                if c['hidden'] or mn < min_dim or c.get('noround'):
+                    out.append(c)
+                    continue
+                r = min(rmax, max(0.3, mn * ratio))   # 네모난 느낌은 살리고 모서리만 살짝
+                for ax in (2, 0, 1):          # z(앞뒤 면)가 원래 큐브 uuid 유지
+                    frm, to = list(c['frm']), list(c['to'])
+                    for j in range(3):
+                        if j != ax:
+                            frm[j] += r
+                            to[j] -= r
+                    nc = dict(c)
+                    nc['frm'], nc['to'] = frm, to
+                    nc['decals'] = {f: v for f, v in c['decals'].items() if f in axis_faces[ax]}
+                    nc['uuid'] = c['uuid'] if ax == 2 else uid()
+                    if ax != 2:
+                        self.cubes_total += 1
+                    out.append(nc)
+            b.cubes = out
+
+    def sculpt(self):
+        if getattr(self, '_sculpted', False):
+            return
+        self._sculpted = True
+        hs = getattr(self, 'head_scale', None)
+        if hs:
+            self.scale_bone(*hs)
+        if getattr(self, 'round', True):
+            self.roundify()
+
+    def fit(self, limit=48):
+        """Move cubes that overflow their bone's ±limit box into child bones pivoted at the cube centre."""
+        self.sculpt()
+        n = 0
+        for b in list(self.bones):
+            if b.name == 'hitbox':
+                continue
+            keep = []
+            for c in b.cubes:
+                bad = any(max(abs(c['frm'][i] - b.origin[i]), abs(c['to'][i] - b.origin[i])) > limit for i in range(3))
+                if not bad:
+                    keep.append(c)
+                    continue
+                for i in range(3):
+                    assert abs(c['to'][i] - c['frm'][i]) <= 2 * limit, (b.name, 'cube too large', c['frm'], c['to'])
+                n += 1
+                o = [(c['frm'][i] + c['to'][i]) / 2 for i in range(3)]
+                nb = Bone(self, '%s_p%d' % (b.name, n), o, b)
+                self.bones.append(nb)
+                nb.cubes.append(c)
+            b.cubes = keep
+        return n
+
+    def check(self, limit=48):
+        out = []
+        for b in self.bones:
+            if b.name == 'hitbox':
+                continue
+            for c in b.cubes:
+                for i in range(3):
+                    lo, hi = c['frm'][i] - b.origin[i], c['to'][i] - b.origin[i]
+                    if max(abs(lo), abs(hi)) > limit:
+                        out.append((b.name, 'xyz'[i], round(lo, 1), round(hi, 1)))
+        return out
+
+
+def merge(name, variants, hitbox=None, density=1.0):
+    """Pack several models into one blueprint (ModelEngine free = 12 models).
+    Every bone becomes '<variant>__<bone>'; the plugin hides the other variants' bones.
+    variants: list of (variant, Model). Animations with the same name are merged (longest length wins)."""
+    out = Model(name, density=density)
+    out.round = False          # 각 변형은 이미 다듬어짐
+    anims = {}
+    for v, m in variants:
+        pre = v + '__'
+        for k, val in m.mats.items():
+            out.mats[pre + k] = val
+        keep = [b for b in m.bones if b.name != 'hitbox']
+        for b in keep:
+            b.name = pre + b.name
+            b.model = out
+            for c in b.cubes:
+                c['mat'] = pre + c['mat']
+                c['faces'] = {f: pre + mk for f, mk in c['faces'].items()}
+                if not c['dens'] and not c['hidden']:
+                    c['dens'] = m.density
+                out.cubes_total += 1
+            if b.parent is not None and b.parent.name == 'hitbox':
+                b.parent = None
+        out.bones += keep
+        out.roots += [r for r in m.roots if r.name != 'hitbox']
+        for a in m.anims:
+            tr = {pre + bn: ch for bn, ch in a['tracks'].items()}
+            ib = {pre + bn: a.get('ib', {}).get(bn, a['interp']) for bn in a['tracks']}
+            if a['name'] not in anims:
+                anims[a['name']] = dict(name=a['name'], length=a['length'], loop=a['loop'], tracks=tr, interp='catmullrom', ib=ib)
+            else:
+                M = anims[a['name']]
+                M['length'] = max(M['length'], a['length'])
+                M['tracks'].update(tr)
+                M['ib'].update(ib)
+    out.anims = list(anims.values())
+    if hitbox:
+        out.hitbox(*hitbox)
+    return out

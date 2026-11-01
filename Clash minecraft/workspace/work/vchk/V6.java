@@ -1,0 +1,3 @@
+public class V6 { public static void main(String[] a) throws Exception {
+  for (String n : new String[]{"kr.kjmn.clashmc.Battle","kr.kjmn.clashmc.Battle$Outline","kr.kjmn.clashmc.Battle$1","kr.kjmn.clashmc.Battle$2","kr.kjmn.clashmc.Battle$3","kr.kjmn.clashmc.Battle$4","kr.kjmn.clashmc.Battle$Zone","kr.kjmn.clashmc.ClashPlugin","kr.kjmn.clashmc.GameListener","kr.kjmn.clashmc.Clash","kr.kjmn.clashmc.CardDef","kr.kjmn.clashmc.Arena","kr.kjmn.clashmc.Combatant","kr.kjmn.clashmc.Bars"}) {
+    Class<?> c = Class.forName(n, true, V6.class.getClassLoader()); c.getDeclaredMethods(); } System.out.println("all verified"); } }

@@ -1,0 +1,16 @@
+name: ClashMC
+version: 3.4.2
+main: kr.kjmn.clashmc.ClashPlugin
+api-version: '1.21'
+description: 클래시 마크 - 클래시로얄 마크버전 (플레이어가 킹, 나머지는 유닛)
+author: kjmn2134
+softdepend: [ModelEngine, BetterModel, FastAsyncWorldEdit, WorldEdit]
+commands:
+  clash:
+    description: 클래시 마크 명령어
+    usage: /clash [menu|ranked|ai|room|deck|skin|profile|top|ff|leave|status]
+    aliases: [cm, 클래시]
+permissions:
+  clash.admin:
+    description: 클래시 마크 관리자 명령어
+    default: op
