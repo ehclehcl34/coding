@@ -91,6 +91,9 @@ public final class GameManager {
     boolean scalePlayers;
     boolean scaleModeledMobs;
     boolean modelFollowsScale;
+    /** 플레이어 유닛 눈높이를 모델 머리 높이에 맞춤 (scale 로) */
+    boolean eyeFromModel;
+    double eyeMaxScale;
     boolean hpDisplays;
     boolean unitHpNumbers;
     boolean damageNumbers;
@@ -145,6 +148,8 @@ public final class GameManager {
         this.scalePlayers = var1.getBoolean("hitbox.scale-players", true);
         this.scaleModeledMobs = var1.getBoolean("hitbox.scale-modeled-mobs", false);
         this.modelFollowsScale = var1.getBoolean("hitbox.model-follows-scale", false);
+        this.eyeFromModel = var1.getBoolean("hitbox.player-eye-from-model", true);
+        this.eyeMaxScale = var1.getDouble("hitbox.player-eye-max-scale", 4.0);
         this.hpDisplays = var1.getBoolean("ui.hp-bars", true);
         this.unitHpNumbers = var1.getBoolean("ui.unit-hp-numbers", true);
         this.damageNumbers = var1.getBoolean("ui.damage-numbers", true);

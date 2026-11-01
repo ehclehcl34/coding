@@ -897,7 +897,8 @@ public final class Battle {
         var3.setSaturation(0.0F);
         var3.setHealth(20.0);
         var6.radius = var2.hitboxW / 2.0;
-        boolean var8 = this.applyUnit(var3, this.gm.skinModel(var1.color, var2.id, var2.model, var3.getUniqueId(), false), true, var1.color.color);
+        String unitModel = this.gm.skinModel(var1.color, var2.id, var2.model, var3.getUniqueId(), false);
+        boolean var8 = this.applyUnit(var3, unitModel, true, var1.color.color);
         var6.modeled = var8;
         if (var8 && var2.weapon != Material.AIR) {
             // 모델이 무기를 들고 있으니 손에 든 아이템은 치움 (투명한 몸에 아이템만 떠 보이지 않게)
@@ -908,7 +909,20 @@ public final class Battle {
         if (var8) {
             var3.sendMessage("§7[F] 키: 내 모델 보기/숨기기 (1인칭에선 숨김 추천, F5 3인칭에선 보기)");
         }
-        if (this.gm.scalePlayers) {
+        if (var8 && this.gm.eyeFromModel) {
+            // 1인칭 시점을 모델 머리 높이로: 플레이어 눈높이(1.62 x scale)를 모델 눈높이에 맞춤
+            // (BetterModel 모델은 엔티티 scale 을 안 따라가서 모델 크기는 그대로)
+            double eye = ModelHeights.eye(unitModel);
+            if (eye <= 0.0) {
+                eye = ModelHeights.eye(var2.model);
+            }
+            if (eye > 0.0) {
+                double s = Math.max(0.25, Math.min(Math.max(0.25, this.gm.eyeMaxScale), eye / 1.62));
+                applyScale(var3, s);
+            } else if (this.gm.scalePlayers) {
+                applyScale(var3, var2.hitboxH / 1.8);
+            }
+        } else if (this.gm.scalePlayers) {
             double var9 = applyScale(var3, var2.hitboxH / 1.8);
             if (var8 && this.gm.modelFollowsScale) {
                 this.gm.models.scale(var3, 1.0 / var9);
@@ -4771,13 +4785,24 @@ public final class Battle {
                             GameManager.actionbar(var1, "§c사거리 밖 §7(" + String.format("%.1f", var3.range) + "블록)");
                         } else {
                             var2.nextAttack = this.now() + var3.hitTicks();
+                            this.swingAnimAt.put(var1.getUniqueId(), var2.nextAttack);
                             this.attack(var2, var6);
+                            return;
                         }
                     }
+                }
+
+                // 허공 / 사거리 밖: 데미지는 없지만 공격 모션은 보여 줌 (연타해도 공격 속도만큼만)
+                if (var2.modeled && this.now() >= this.swingAnimAt.getOrDefault(var1.getUniqueId(), 0L)) {
+                    this.swingAnimAt.put(var1.getUniqueId(), this.now() + Math.max(6L, var3.hitTicks()));
+                    this.gm.models.anim(var1, "attack");
                 }
             }
         }
     }
+
+    /** 플레이어 유닛 휘두르기 모션 다음 가능 틱 */
+    private final Map<UUID, Long> swingAnimAt = new HashMap<>();
 
     private void playerUnitDied(Combatant var1, boolean var2) {
         UUID var3 = var1.playerId;
