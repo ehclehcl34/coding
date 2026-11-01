@@ -197,6 +197,17 @@ final class BetterModelBackend {
         return l;
     }
 
+    /** 플레이어는 눈높이 때문에 scale 을 키우므로, 모델은 1배로 고정해서 AI 유닛과 같은 크기로 */
+    private void fixScale(Object t) {
+        try {
+            Class<?> sc = Class.forName("kr.toxicity.model.api.tracker.ModelScaler");
+            Object one = sc.getMethod("value", float.class).invoke(null, 1.0F);
+            t.getClass().getMethod("scaler", sc).invoke(t, one);
+        } catch (Throwable ex) {
+            this.warn("BetterModel 모델 크기 고정 실패: " + ex);
+        }
+    }
+
     private Object build(Entity var1, String var2, Predicate<String> var3, Color var4) {
         try {
             if (this.api.getMethod("model", String.class).invoke(null, var2) instanceof Optional var6 && !var6.isEmpty()) {
@@ -233,6 +244,10 @@ final class BetterModelBackend {
                         Integer g = this.glowRgb.get(var1.getUniqueId());
                         if (g != null) {
                             this.applyGlow(var16, g);
+                        }
+
+                        if (var1 instanceof org.bukkit.entity.Player) {
+                            this.fixScale(var16);
                         }
 
                         return var16;
