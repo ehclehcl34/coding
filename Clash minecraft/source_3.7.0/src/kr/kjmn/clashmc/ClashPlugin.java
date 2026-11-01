@@ -242,7 +242,15 @@ public final class ClashPlugin extends JavaPlugin implements CommandExecutor, Ta
                 return true;
             case "skin":
             case "스킨":
-                if (var5 != null) {
+                if (var5 != null && var4.length >= 2 && (var4[1].equalsIgnoreCase("original") || var4[1].equals("원본"))) {
+                    Profile op = this.core.profiles.get(var5);
+                    op.originalSkins = !op.originalSkins;
+                    op.dirty = true;
+                    if (this.core.models != null) {
+                        this.core.models.refreshViewer(var5);
+                    }
+                    var5.sendMessage(op.originalSkins ? "§d[스킨] §f원본 스킨으로 보기 §a켜짐" : "§d[스킨] §f원본 스킨으로 보기 §7꺼짐");
+                } else if (var5 != null) {
                     this.core.lobby.action(var5, "skins");
                 }
 

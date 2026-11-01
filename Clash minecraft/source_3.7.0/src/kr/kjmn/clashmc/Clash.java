@@ -256,6 +256,10 @@ public final class Clash {
         this.plugin.getLogger().info("카드 " + this.cards.size() + "장 로드");
         if (this.models == null) {
             this.models = new ModelHook(this.plugin.getLogger(), var1.getBoolean("modelengine.enabled", true), var1.getString("modelengine.backend", "auto"));
+            this.models.wantsOriginal(id -> {
+                Profile p = this.profiles.get(id);
+                return p != null && p.originalSkins;
+            });
         }
 
         File var10 = new File(this.plugin.getDataFolder(), "skins.yml");

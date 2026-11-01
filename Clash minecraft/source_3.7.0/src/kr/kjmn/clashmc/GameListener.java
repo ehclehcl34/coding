@@ -100,6 +100,9 @@ public final class GameListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent var1) {
         this.core.lobby.onJoin(var1.getPlayer());
+        if (this.core.models != null) {
+            this.core.models.refreshViewer(var1.getPlayer());
+        }
     }
 
     @EventHandler

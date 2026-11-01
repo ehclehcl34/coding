@@ -23,6 +23,9 @@ public final class ModelHook {
     private boolean warned;
     private BetterModelBackend bm;
     private Color pendingTint;
+    /** 스킨 모델 이름 → 원래(기본) 모델 이름. GameManager.skinModel 이 채움 */
+    public final Map<String, String> originals = new java.util.concurrent.ConcurrentHashMap<>();
+    private String pendingOrig;
 
     public ModelHook(Logger var1, boolean var2, String var3) {
         this.log = var1;
@@ -71,8 +74,15 @@ public final class ModelHook {
 
     public boolean apply(Entity var1, String var2, boolean var3) {
         if (this.enabled && var1 != null && var2 != null && !var2.isEmpty()) {
+            String orig = this.pendingOrig != null ? this.pendingOrig : this.originalOf(var2);
+            if (orig != null && orig.contains("{team}")) {
+                orig = orig.replace("{team}", "blue");
+            }
             if (var2.contains("{team}")) {
                 var2 = var2.replace("{team}", "blue");
+            }
+            if (orig != null && orig.equals(var2)) {
+                orig = null;
             }
 
             ArrayList<String> var4 = new ArrayList<>();
@@ -99,6 +109,10 @@ public final class ModelHook {
             if (this.bm != null) {
                 boolean var19 = this.bm.apply(var1, var2, var18, this.pendingTint);
                 if (var19) {
+                    this.bm.dropAlt(var1);
+                    if (orig != null) {
+                        this.applyOriginal(var1, orig);
+                    }
                     this.settleSpawn(var1);
                 }
 
@@ -215,6 +229,61 @@ public final class ModelHook {
         }
     }
 
+    /** 스킨 모델이면 원래 모델 이름 (뒤에 붙은 #숨김본 은 그대로 이어 붙임), 아니면 null */
+    String originalOf(String m) {
+        if (m == null || this.originals.isEmpty()) {
+            return null;
+        }
+        String o = this.originals.get(m);
+        if (o != null) {
+            return o;
+        }
+        int h = m.indexOf('#');
+        if (h > 0) {
+            o = this.originals.get(m.substring(0, h));
+            if (o != null) {
+                return o + (o.indexOf('#') > 0 ? "," : "#") + m.substring(h + 1);
+            }
+        }
+        return null;
+    }
+
+    /** 원본 스킨으로 보는 사람용 기본 모델 겹치기 */
+    private void applyOriginal(Entity e, String m) {
+        ArrayList<String> hide = new ArrayList<>();
+        int h = m.indexOf('#');
+        if (h > 0) {
+            for (String b : m.substring(h + 1).split(",")) {
+                if (!b.isBlank()) {
+                    hide.add(b.trim().toLowerCase());
+                }
+            }
+            m = m.substring(0, h);
+        }
+        String variant = null;
+        int c = m.indexOf(':');
+        if (c > 0) {
+            variant = m.substring(c + 1).toLowerCase();
+            m = m.substring(0, c);
+        }
+        String v = variant;
+        this.bm.applyAlt(e, m, b -> hidden(b, v, hide), this.pendingTint);
+    }
+
+    /** 원본 스킨 보기 여부 판단 (Clash 가 프로필 기준으로 넣어 줌) */
+    public void wantsOriginal(Predicate<UUID> p) {
+        if (this.bm != null) {
+            this.bm.wantsOriginal = p;
+        }
+    }
+
+    /** 이 플레이어 기준으로 겹친 모델 다시 정리 */
+    public void refreshViewer(org.bukkit.entity.Player p) {
+        if (this.bm != null && p != null) {
+            this.bm.refreshViewer(p);
+        }
+    }
+
     /** 모델의 본 하나 보이기/숨기기 (BetterModel 만) */
     public void part(Entity e, String bone, boolean show) {
         if (this.bm != null && e != null) {
@@ -244,18 +313,24 @@ public final class ModelHook {
     }
 
     public boolean apply(Entity var1, String var2, boolean var3, Color var4) {
+        String orig = var2 == null ? null : this.originalOf(var2);
+        if (orig != null && orig.contains("{team}")) {
+            orig = orig.replace("{team}", teamKey(var4));
+        }
         if (var2 != null && var2.contains("{team}")) {
             var2 = var2.replace("{team}", teamKey(var4));
         }
 
         if (this.bm != null) {
             this.pendingTint = var4;
+            this.pendingOrig = orig;
 
             boolean var9;
             try {
                 var9 = this.apply(var1, var2, var3);
             } finally {
                 this.pendingTint = null;
+                this.pendingOrig = null;
             }
 
             return var9;

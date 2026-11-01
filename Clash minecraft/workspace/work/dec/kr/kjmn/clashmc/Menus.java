@@ -983,6 +983,29 @@ final class Menus {
                 }
             }
 
+            boolean orig = var1 != null && var1.originalSkins;
+            ItemStack ov = Ui.icon(
+                "skin_original",
+                orig ? Material.LIME_DYE : Material.GRAY_DYE,
+                orig ? "§a§l원본 스킨으로 보기: 켜짐" : "§7§l원본 스킨으로 보기: 꺼짐",
+                "§7켜면 모든 유닛 / 타워가",
+                "§7기본 모습으로 보여요 §8(내 화면에만)",
+                "",
+                orig ? "§e클릭: 끄기" : "§e클릭: 켜기"
+            );
+            this.set(49, Ui.glow(ov, orig), var2x -> {
+                if (var1 == null) {
+                    return;
+                }
+                var1.originalSkins = !var1.originalSkins;
+                var1.dirty = true;
+                if (this.core.models != null) {
+                    this.core.models.refreshViewer(this.viewer);
+                }
+                this.viewer.playSound(this.viewer.getLocation(), "ui.button.click", 0.6F, var1.originalSkins ? 1.4F : 0.9F);
+                this.viewer.sendMessage(var1.originalSkins ? "§d[스킨] §f원본 스킨으로 보기 §a켜짐" : "§d[스킨] §f원본 스킨으로 보기 §7꺼짐");
+                this.refresh();
+            });
             this.backButton(45, () -> new Menus.MainMenu(this.core, this.viewer).open());
         }
     }

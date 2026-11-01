@@ -34,6 +34,12 @@ final class BetterModelBackend {
     private int rebuilt;
     /** 테두리 발광 색 (모델을 다시 만들 때도 유지) */
     private final Map<UUID, Integer> glowRgb = new HashMap<>();
+    /** 원본 스킨 보기용 기본 모델 트래커 (스킨 모델과 같은 엔티티에 겹쳐 둠) */
+    private final Map<UUID, Object> alts = new HashMap<>();
+    private final Map<UUID, Object[]> altArgs = new HashMap<>();
+    private final Map<UUID, Integer> altStrikes = new HashMap<>();
+    /** 이 플레이어가 원본 스킨으로 보는지 */
+    Predicate<UUID> wantsOriginal = id -> false;
 
     BetterModelBackend(Logger var1) throws Exception {
         this.log = var1;
@@ -54,6 +60,139 @@ final class BetterModelBackend {
     }
 
     boolean apply(Entity var1, String var2, Predicate<String> var3, Color var4) {
+        Object t = this.build(var1, var2, var3, var4);
+        if (t == null) {
+            return false;
+        }
+        this.trackers.put(var1.getUniqueId(), t);
+        this.applyArgs.put(var1.getUniqueId(), new Object[]{var1, var2, var3, var4});
+        this.born.put(var1.getUniqueId(), System.currentTimeMillis());
+        if (this.alts.containsKey(var1.getUniqueId())) {
+            this.viewAll(var1.getUniqueId());
+        }
+        return true;
+    }
+
+    /** 원본 스킨 보기용 기본 모델 겹치기 (스킨 모델이 먼저 적용된 엔티티에만) */
+    boolean applyAlt(Entity e, String model, Predicate<String> pred, Color c) {
+        this.dropAlt(e);
+        if (!this.trackers.containsKey(e.getUniqueId())) {
+            return false;
+        }
+        Object t = this.build(e, model, pred, c);
+        if (t == null) {
+            return false;
+        }
+        this.alts.put(e.getUniqueId(), t);
+        this.altArgs.put(e.getUniqueId(), new Object[]{e, model, pred, c});
+        this.viewAll(e.getUniqueId());
+        return true;
+    }
+
+    void dropAlt(Entity e) {
+        if (e == null) {
+            return;
+        }
+        this.altArgs.remove(e.getUniqueId());
+        this.altStrikes.remove(e.getUniqueId());
+        Object a = this.alts.remove(e.getUniqueId());
+        if (a != null) {
+            try {
+                a.getClass().getMethod("close").invoke(a);
+            } catch (Throwable ignored) {
+            }
+            // 원본으로 보던 사람에게 숨겨 둔 스킨 모델 다시 보이기
+            Object t = this.trackers.get(e.getUniqueId());
+            if (t != null) {
+                for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
+                    if (!p.equals(e)) {
+                        this.vis(t, true, this.pp(p));
+                    }
+                }
+            }
+        }
+    }
+
+    /** 플레이어 한 명 기준으로 모든 겹친 모델 다시 정리 (설정 바꿨을 때 / 접속했을 때) */
+    void refreshViewer(org.bukkit.entity.Player p) {
+        Object pp = this.pp(p);
+        if (pp == null) {
+            return;
+        }
+        for (UUID id : new java.util.ArrayList<>(this.alts.keySet())) {
+            this.view(id, p, pp);
+        }
+    }
+
+    private void viewAll(UUID id) {
+        for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
+            Object pp = this.pp(p);
+            if (pp != null) {
+                this.view(id, p, pp);
+            }
+        }
+    }
+
+    private void view(UUID id, org.bukkit.entity.Player p, Object pp) {
+        Object t = this.trackers.get(id);
+        Object a = this.alts.get(id);
+        if (t == null || a == null || p.getUniqueId().equals(id)) {
+            return;   // 자기 자신 모델은 selfView 가 처리
+        }
+        boolean orig = this.wantsOriginal.test(p.getUniqueId());
+        this.vis(t, !orig, pp);
+        this.vis(a, orig, pp);
+    }
+
+    private Object pp(Entity e) {
+        try {
+            for (Method m : this.adapter.getMethods()) {
+                if (m.getName().equals("adapt") && Modifier.isStatic(m.getModifiers()) && m.getParameterCount() == 1
+                    && m.getParameterTypes()[0].isInstance(e) && m.getReturnType().getSimpleName().equals("PlatformPlayer")) {
+                    return m.invoke(null, e);
+                }
+            }
+            return this.adapter.getMethod("adapt", Entity.class).invoke(null, e);
+        } catch (Throwable ex) {
+            return null;
+        }
+    }
+
+    private void vis(Object t, boolean show, Object pp) {
+        if (pp == null) {
+            return;
+        }
+        String n = show ? "show" : "hide";
+        try {
+            for (Method m : t.getClass().getMethods()) {
+                if (m.getName().equals(n) && m.getParameterCount() == 1 && m.getParameterTypes()[0].isInstance(pp)) {
+                    m.invoke(t, pp);
+                    return;
+                }
+            }
+        } catch (Throwable ex) {
+            this.warn("BetterModel 원본 스킨 표시 실패: " + ex);
+        }
+    }
+
+    /** 이 엔티티에 붙은 트래커 전부 (스킨 + 겹친 기본 모델) */
+    private java.util.List<Object> all(Entity e) {
+        java.util.List<Object> l = new java.util.ArrayList<>(2);
+        if (e == null) {
+            return l;
+        }
+        Object t = this.trackers.get(e.getUniqueId());
+        if (t != null) {
+            l.add(t);
+        }
+        Object a = this.alts.get(e.getUniqueId());
+        if (a != null) {
+            l.add(a);
+        }
+        return l;
+    }
+
+    private Object build(Entity var1, String var2, Predicate<String> var3, Color var4) {
         try {
             if (this.api.getMethod("model", String.class).invoke(null, var2) instanceof Optional var6 && !var6.isEmpty()) {
                 if (var1 instanceof LivingEntity var7) {
@@ -76,11 +215,8 @@ final class BetterModelBackend {
                 } else {
                     Object var16 = var9.invoke(var15, var8);
                     if (var16 == null) {
-                        return false;
+                        return null;
                     } else {
-                        this.trackers.put(var1.getUniqueId(), var16);
-                        this.applyArgs.put(var1.getUniqueId(), new Object[]{var1, var2, var3, var4});
-                        this.born.put(var1.getUniqueId(), System.currentTimeMillis());
                         this.update(var16, this.toggle(false), var3);
                         if (var4 != null) {
                             int var17 = var4.asRGB();
@@ -94,15 +230,15 @@ final class BetterModelBackend {
                             this.applyGlow(var16, g);
                         }
 
-                        return true;
+                        return var16;
                     }
                 }
             } else {
-                return false;
+                return null;
             }
         } catch (Throwable var14) {
             this.warn("BetterModel 모델 적용 실패 (" + var2 + "): " + var14);
-            return false;
+            return null;
         }
     }
 
@@ -113,6 +249,27 @@ final class BetterModelBackend {
         }
         Object t = this.trackers.get(e.getUniqueId());
         if (t == null) {
+            return;
+        }
+        Object alt = this.alts.get(e.getUniqueId());
+        if (alt != null) {
+            Object me = this.pp(e);
+            boolean orig = this.wantsOriginal.test(e.getUniqueId());
+            this.vis(t, show && !orig, me);
+            this.vis(alt, show && orig, me);
+            if (show) {
+                try {
+                    Object reg = t.getClass().getMethod("registry").invoke(t);
+                    for (Method m : reg.getClass().getMethods()) {
+                        if (m.getName().equals("spawnIfNotSpawned") && m.getParameterCount() == 1 && m.getParameterTypes()[0].isInstance(me)) {
+                            m.invoke(reg, me);
+                            break;
+                        }
+                    }
+                } catch (Throwable ex) {
+                    this.warn("BetterModel 자기 모델 표시 실패: " + ex);
+                }
+            }
             return;
         }
         try {
@@ -151,44 +308,48 @@ final class BetterModelBackend {
 
     /** 본 보이기/숨기기 (이름이 정확히 같은 본) */
     void part(Entity e, String bone, boolean show) {
-        Object t = e == null ? null : this.trackers.get(e.getUniqueId());
-        if (t == null) {
-            return;
-        }
-        try {
-            this.update(t, this.toggle(show), s -> s.equals(bone));
-        } catch (Throwable ex) {
-            this.warn("BetterModel 본 표시 실패: " + ex);
+        for (Object t : this.all(e)) {
+            try {
+                this.update(t, this.toggle(show), s -> s.equals(bone));
+            } catch (Throwable ex) {
+                this.warn("BetterModel 본 표시 실패: " + ex);
+            }
         }
     }
 
     /** 모델 전체 숨기기/보이기 (원래 숨겨 둔 본·hitbox 는 계속 숨김) */
     @SuppressWarnings("unchecked")
     void visible(Entity e, boolean show) {
-        Object t = e == null ? null : this.trackers.get(e.getUniqueId());
-        if (t == null) {
+        if (e == null) {
             return;
         }
-        Object[] a = this.applyArgs.get(e.getUniqueId());
-        Predicate<String> hidden = a != null && a[2] instanceof Predicate<?> p ? (Predicate<String>)p : s -> false;
-        try {
-            this.update(t, this.toggle(show), s -> !show || (!hidden.test(s) && !s.equals("hitbox")));
-        } catch (Throwable ex) {
-            this.warn("BetterModel 모델 숨기기 실패: " + ex);
+        for (int i = 0; i < 2; i++) {
+            Object t = (i == 0 ? this.trackers : this.alts).get(e.getUniqueId());
+            if (t == null) {
+                continue;
+            }
+            Object[] a = (i == 0 ? this.applyArgs : this.altArgs).get(e.getUniqueId());
+            Predicate<String> hidden = a != null && a[2] instanceof Predicate<?> p ? (Predicate<String>)p : s -> false;
+            try {
+                this.update(t, this.toggle(show), s -> !show || (!hidden.test(s) && !s.equals("hitbox")));
+            } catch (Throwable ex) {
+                this.warn("BetterModel 모델 숨기기 실패: " + ex);
+            }
         }
     }
 
     void glow(Entity e, Color c) {
-        Object t = this.trackers.get(e.getUniqueId());
-        if (t == null) {
+        if (!this.trackers.containsKey(e.getUniqueId())) {
             return;
         }
         int rgb = c.asRGB();
         this.glowRgb.put(e.getUniqueId(), rgb);
-        try {
-            this.applyGlow(t, rgb);
-        } catch (Throwable ex) {
-            this.warn("BetterModel 발광 실패: " + ex);
+        for (Object t : this.all(e)) {
+            try {
+                this.applyGlow(t, rgb);
+            } catch (Throwable ex) {
+                this.warn("BetterModel 발광 실패: " + ex);
+            }
         }
     }
 
@@ -206,7 +367,14 @@ final class BetterModelBackend {
     }
 
     boolean anim(Entity var1, String var2) {
-        Object var3 = var1 == null ? null : this.trackers.get(var1.getUniqueId());
+        boolean ok = false;
+        for (Object t : this.all(var1)) {
+            ok |= this.animOne(t, var2);
+        }
+        return ok;
+    }
+
+    private boolean animOne(Object var3, String var2) {
         if (var3 == null) {
             return false;
         } else {
@@ -240,23 +408,20 @@ final class BetterModelBackend {
     }
 
     boolean animHold(Entity var1, String var2) {
-        Object var3 = var1 == null ? null : this.trackers.get(var1.getUniqueId());
-        if (var3 == null) {
-            return false;
-        } else {
+        boolean ok = false;
+        for (Object var3 : this.all(var1)) {
             try {
                 var3.getClass().getMethod("animate", String.class, this.modifierCls).invoke(var3, var2, this.playDefault);
-                return true;
+                ok = true;
             } catch (Throwable var5) {
                 this.warn("BetterModel 애니메이션 실패 (" + var2 + "): " + var5);
-                return false;
             }
         }
+        return ok;
     }
 
     void stop(Entity var1, String var2) {
-        Object var3 = var1 == null ? null : this.trackers.get(var1.getUniqueId());
-        if (var3 != null) {
+        for (Object var3 : this.all(var1)) {
             try {
                 var3.getClass().getMethod("stopAnimation", String.class).invoke(var3, var2);
             } catch (Throwable var5) {
@@ -265,6 +430,20 @@ final class BetterModelBackend {
     }
 
     void hide(Entity e, Predicate<String> pred) {
+        Object alt = e == null ? null : this.alts.get(e.getUniqueId());
+        if (alt != null) {
+            try {
+                this.update(alt, this.toggle(false), pred);
+                Object[] a = this.altArgs.get(e.getUniqueId());
+                if (a != null && a[2] instanceof Predicate<?> old) {
+                    @SuppressWarnings("unchecked")
+                    Predicate<String> o = (Predicate<String>)old;
+                    a[2] = o.or(pred);
+                }
+            } catch (Throwable ex) {
+                this.warn("BetterModel 본 숨기기 실패: " + ex);
+            }
+        }
         Object t = e == null ? null : this.trackers.get(e.getUniqueId());
         if (t != null) {
             try {
@@ -284,6 +463,15 @@ final class BetterModelBackend {
 
     void remove(Entity var1) {
         if (var1 != null) {
+            this.altArgs.remove(var1.getUniqueId());
+            this.altStrikes.remove(var1.getUniqueId());
+            Object alt = this.alts.remove(var1.getUniqueId());
+            if (alt != null) {
+                try {
+                    alt.getClass().getMethod("close").invoke(alt);
+                } catch (Throwable ignored) {
+                }
+            }
             this.applyArgs.remove(var1.getUniqueId());
             this.glowRgb.remove(var1.getUniqueId());
             this.born.remove(var1.getUniqueId());
@@ -307,6 +495,16 @@ final class BetterModelBackend {
             }
         }
 
+        for (Object a : this.alts.values()) {
+            try {
+                a.getClass().getMethod("close").invoke(a);
+            } catch (Throwable ignored) {
+            }
+        }
+
+        this.alts.clear();
+        this.altArgs.clear();
+        this.altStrikes.clear();
         this.trackers.clear();
         this.applyArgs.clear();
         this.glowRgb.clear();
@@ -378,6 +576,37 @@ final class BetterModelBackend {
                 this.stop(e, "spawn");
             } else if (s >= 2) {
                 this.rebuild(id);
+            }
+        }
+
+        // 겹친 기본 모델도 똑같이 감시
+        for (Map.Entry<UUID, Object> en : new java.util.ArrayList<>(this.alts.entrySet())) {
+            UUID id = en.getKey();
+            Object t = en.getValue();
+            Object[] a = this.altArgs.get(id);
+            if (a == null || !(a[0] instanceof Entity e) || !e.isValid()) {
+                continue;
+            }
+            long age = nowMs - this.born.getOrDefault(id, nowMs);
+            if (age < 1500L) {
+                continue;
+            }
+            boolean bad = Boolean.TRUE.equals(call0(t, "isClosed"));
+            if (!bad) {
+                Object pc = call0(t, "playerCount");
+                Object sch = call0(t, "isScheduled");
+                bad = pc instanceof Integer n && n > 0 && Boolean.FALSE.equals(sch) || age > 5000L && this.runningDeploy(t);
+            }
+            if (!bad) {
+                this.altStrikes.remove(id);
+                continue;
+            }
+            if (this.altStrikes.merge(id, 1, Integer::sum) >= 2) {
+                this.altStrikes.remove(id);
+                this.rebuilt++;
+                @SuppressWarnings("unchecked")
+                Predicate<String> pr = (Predicate<String>)a[2];
+                this.applyAlt(e, (String)a[1], pr, (Color)a[3]);
             }
         }
     }

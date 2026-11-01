@@ -943,6 +943,9 @@ public final class GameManager {
                 return var3;
             } else {
                 String var8 = var5 ? var10.barrelModel() : var10.model();
+                if (var8 != null && !var8.isEmpty() && var3 != null && !var3.isEmpty() && !var8.equals(var3)) {
+                    this.models.originals.put(var8, var3);
+                }
                 return var8 != null && !var8.isEmpty() ? var8 : var3;
             }
         }
