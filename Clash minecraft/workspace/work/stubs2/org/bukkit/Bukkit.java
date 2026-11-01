@@ -12,6 +12,7 @@ public class Bukkit {
     public static org.bukkit.entity.Player getPlayerExact(java.lang.String a0) { return null; }
     public static org.bukkit.plugin.PluginManager getPluginManager() { return null; }
     public static org.bukkit.scheduler.BukkitScheduler getScheduler() { return null; }
+    public static boolean isPrimaryThread() { return true; }
     public static org.bukkit.scoreboard.ScoreboardManager getScoreboardManager() { return null; }
     public static org.bukkit.World getWorld(java.lang.String a0) { return null; }
     public static java.util.List getWorlds() { return null; }

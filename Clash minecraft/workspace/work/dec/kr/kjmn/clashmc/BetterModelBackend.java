@@ -38,6 +38,11 @@ final class BetterModelBackend {
     private final Map<UUID, Object> alts = new HashMap<>();
     private final Map<UUID, Object[]> altArgs = new HashMap<>();
     private final Map<UUID, Integer> altStrikes = new HashMap<>();
+    /** deploy 재생 중인 엔티티 → 재생 번호 (끝나면 지움) */
+    private final Map<UUID, Long> deploying = new HashMap<>();
+    /** deploy 중에 들어온 애니메이션 (끝나면 순서대로 실행, 같은 키는 마지막 것만) */
+    private final Map<UUID, java.util.LinkedHashMap<String, Runnable>> waiting = new HashMap<>();
+    private long deploySeq;
     /** 이 플레이어가 원본 스킨으로 보는지 */
     Predicate<UUID> wantsOriginal = id -> false;
 
@@ -367,14 +372,96 @@ final class BetterModelBackend {
     }
 
     boolean anim(Entity var1, String var2) {
+        if (var1 == null) {
+            return false;
+        }
+        UUID id = var1.getUniqueId();
+        boolean dep = var2.equals("deploy") || var2.equals("spawn");
+        if (dep) {
+            if (!this.trackers.containsKey(id)) {
+                return false;
+            }
+            long tok = ++this.deploySeq;
+            this.deploying.put(id, tok);
+            this.waiting.remove(id);
+            // 안전장치: 콜백이 안 오면 8초 뒤 강제로 대기열 실행
+            this.later(160L, () -> this.endDeploy(id, tok));
+            boolean ok = false;
+            for (Object t : this.all(var1)) {
+                ok |= this.animOne(t, var2, t == this.trackers.get(id) ? id : null, tok);
+            }
+            if (!ok) {
+                this.endDeploy(id, tok);
+            }
+            return ok;
+        }
+        if (this.deploying.containsKey(id)) {
+            if (var2.equals("death")) {
+                // 죽으면 바로 (deploy 무시)
+                this.deploying.remove(id);
+                this.waiting.remove(id);
+            } else if (var2.equals("hit")) {
+                return true;   // 피격 모션은 deploy 를 끊으므로 생략
+            } else {
+                this.queue(id, "anim:" + var2, () -> this.anim(var1, var2));
+                return true;
+            }
+        }
         boolean ok = false;
         for (Object t : this.all(var1)) {
-            ok |= this.animOne(t, var2);
+            ok |= this.animOne(t, var2, null, 0L);
         }
         return ok;
     }
 
-    private boolean animOne(Object var3, String var2) {
+    private void queue(UUID id, String key, Runnable r) {
+        java.util.LinkedHashMap<String, Runnable> q = this.waiting.computeIfAbsent(id, k -> new java.util.LinkedHashMap<>());
+        q.remove(key);
+        if (key.startsWith("hold:")) {
+            // 상태 애니메이션은 마지막 것 하나만
+            q.keySet().removeIf(k -> k.startsWith("hold:"));
+        }
+        q.put(key, r);
+    }
+
+    /** deploy 끝 → 기다리던 애니메이션 실행 (메인 스레드에서) */
+    private void endDeploy(UUID id, long tok) {
+        Runnable run = () -> {
+            Long cur = this.deploying.get(id);
+            if (cur == null || cur != tok) {
+                return;
+            }
+            this.deploying.remove(id);
+            java.util.LinkedHashMap<String, Runnable> q = this.waiting.remove(id);
+            if (q != null) {
+                for (Runnable r : q.values()) {
+                    try {
+                        r.run();
+                    } catch (Throwable ex) {
+                        this.warn("대기 애니메이션 실패: " + ex);
+                    }
+                }
+            }
+        };
+        if (org.bukkit.Bukkit.isPrimaryThread()) {
+            run.run();
+        } else {
+            this.later(0L, run);
+        }
+    }
+
+    private void later(long ticks, Runnable r) {
+        org.bukkit.plugin.Plugin pl = org.bukkit.Bukkit.getPluginManager().getPlugin("ClashMC");
+        if (pl != null && pl.isEnabled()) {
+            if (ticks <= 0L) {
+                org.bukkit.Bukkit.getScheduler().runTask(pl, r);
+            } else {
+                org.bukkit.Bukkit.getScheduler().runTaskLater(pl, r, ticks);
+            }
+        }
+    }
+
+    private boolean animOne(Object var3, String var2, UUID cbId, long tok) {
         if (var3 == null) {
             return false;
         } else {
@@ -383,20 +470,28 @@ final class BetterModelBackend {
                 if (var2.equals("deploy") || var2.equals("spawn")) {
                     // 트래커가 아직 플레이어에게 안 보였으면 기본 idle 이 나중에 들어와 소환 모션을 덮음
                     // → 트래커 다음 틱(기본 애니메이션 등록 뒤)에 재생
+                    // 끝나면(콜백) 기다리던 애니메이션 실행
                     Object t = var3;
                     long asked = System.currentTimeMillis();
-                    try {
-                        var3.getClass().getMethod("task", Runnable.class).invoke(var3, (Runnable)() -> {
-                            try {
-                                if (System.currentTimeMillis() - asked < 2500L) {
-                                    var4.invoke(t, var2, this.playOnce);
-                                }
-                            } catch (Throwable ignored) {
+                    Method withEnd = var3.getClass().getMethod("animate", String.class, this.modifierCls, Runnable.class);
+                    Runnable done = cbId == null ? () -> {} : () -> this.endDeploy(cbId, tok);
+                    Runnable play = () -> {
+                        try {
+                            boolean ok = System.currentTimeMillis() - asked < 2500L
+                                && Boolean.TRUE.equals(withEnd.invoke(t, var2, this.playOnce, done));
+                            if (!ok) {
+                                done.run();   // deploy 없는 모델 → 바로 다음 애니메이션
                             }
-                        });
-                        return true;
+                        } catch (Throwable ignored) {
+                            done.run();
+                        }
+                    };
+                    try {
+                        var3.getClass().getMethod("task", Runnable.class).invoke(var3, play);
                     } catch (NoSuchMethodException ignored) {
+                        play.run();
                     }
+                    return true;
                 }
                 var4.invoke(var3, var2, this.playOnce);
                 return true;
@@ -408,6 +503,10 @@ final class BetterModelBackend {
     }
 
     boolean animHold(Entity var1, String var2) {
+        if (var1 != null && this.deploying.containsKey(var1.getUniqueId())) {
+            this.queue(var1.getUniqueId(), "hold:" + var2, () -> this.animHold(var1, var2));
+            return true;
+        }
         boolean ok = false;
         for (Object var3 : this.all(var1)) {
             try {
@@ -421,6 +520,14 @@ final class BetterModelBackend {
     }
 
     void stop(Entity var1, String var2) {
+        if (var1 != null && !var2.equals("deploy") && !var2.equals("spawn") && this.deploying.containsKey(var1.getUniqueId())) {
+            java.util.LinkedHashMap<String, Runnable> q = this.waiting.get(var1.getUniqueId());
+            if (q != null && q.remove("hold:" + var2) != null) {
+                return;   // 아직 시작도 안 한 상태 애니메이션 → 취소만
+            }
+            this.queue(var1.getUniqueId(), "stop:" + var2, () -> this.stop(var1, var2));
+            return;
+        }
         for (Object var3 : this.all(var1)) {
             try {
                 var3.getClass().getMethod("stopAnimation", String.class).invoke(var3, var2);
@@ -463,6 +570,8 @@ final class BetterModelBackend {
 
     void remove(Entity var1) {
         if (var1 != null) {
+            this.deploying.remove(var1.getUniqueId());
+            this.waiting.remove(var1.getUniqueId());
             this.altArgs.remove(var1.getUniqueId());
             this.altStrikes.remove(var1.getUniqueId());
             Object alt = this.alts.remove(var1.getUniqueId());
@@ -502,6 +611,8 @@ final class BetterModelBackend {
             }
         }
 
+        this.deploying.clear();
+        this.waiting.clear();
         this.alts.clear();
         this.altArgs.clear();
         this.altStrikes.clear();
@@ -632,6 +743,10 @@ final class BetterModelBackend {
 
     @SuppressWarnings("unchecked")
     private void rebuild(UUID id) {
+        Long dt = this.deploying.get(id);
+        if (dt != null) {
+            this.later(1L, () -> this.endDeploy(id, dt));   // 새 모델 만든 다음 틱에
+        }
         Object[] a = this.applyArgs.get(id);
         Object old = this.trackers.remove(id);
         this.strikes.remove(id);
