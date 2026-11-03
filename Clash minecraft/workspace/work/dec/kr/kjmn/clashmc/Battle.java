@@ -3188,6 +3188,7 @@ public final class Battle {
             ArmorStand st = (ArmorStand)w.spawn(start.clone(), ArmorStand.class);
             st.addScoreboardTag("clashmc");
             stand(st, true);
+            st.addScoreboardTag("clashmc_nohit");
             if (this.gm.models.apply(st, d.projectileModel, true, src.team.color)) {
                 this.gm.models.anim(st, d.roll ? "roll" : "spin");
                 this.fx.track(st);
@@ -4547,6 +4548,7 @@ public final class Battle {
                     ArmorStand st = (ArmorStand)var4.spawn(bl.clone(), ArmorStand.class);
                     st.addScoreboardTag("clashmc");
                     stand(st, true);
+                    st.addScoreboardTag("clashmc_nohit");
                     if (this.gm.models.apply(st, var3.deathModel, true, var1.team.color)) {
                         this.gm.models.anim(st, "deploy");
                         this.fx.track(st);

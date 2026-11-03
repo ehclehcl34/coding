@@ -66,6 +66,7 @@ final class Fx {
                 var11.setMarker(true);
                 var11.setInvulnerable(true);
                 var11.setPersistent(false);
+                var11.addScoreboardTag("clashmc_nohit");
                 if (this.gm.models.apply(var11, var5, true, var6)) {
                     this.spawned.add(var11);
                 } else {
@@ -715,6 +716,7 @@ final class Fx {
             var12.setMarker(true);
             var12.setInvulnerable(true);
             var12.setPersistent(false);
+            var12.addScoreboardTag("clashmc_nohit");
             if (this.gm.models.apply(var12, var7, true, var8)) {
                 this.spawned.add(var12);
             } else {

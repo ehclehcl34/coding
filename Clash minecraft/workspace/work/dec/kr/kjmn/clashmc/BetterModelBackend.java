@@ -208,6 +208,41 @@ final class BetterModelBackend {
         }
     }
 
+    private boolean hitboxWarned;
+
+    /** 모델의 BetterModel 히트박스 전부 제거 */
+    private void dropHitboxes(Object t) {
+        try {
+            java.lang.reflect.Field f = null;
+            for (Class<?> c = t.getClass(); c != null && f == null; c = c.getSuperclass()) {
+                try {
+                    f = c.getDeclaredField("pipeline");
+                } catch (NoSuchFieldException ignored) {
+                }
+            }
+            if (f == null) {
+                return;
+            }
+            f.setAccessible(true);
+            Object p = f.get(t);
+            if (p == null) {
+                return;
+            }
+            Object st = p.getClass().getMethod("hitboxes").invoke(p);
+            Method rm = Class.forName("kr.toxicity.model.api.nms.HitBox").getMethod("removeHitBox");
+            for (Object hb : ((java.util.stream.Stream<?>)st).toList()) {
+                if (hb != null) {
+                    rm.invoke(hb);
+                }
+            }
+        } catch (Throwable ex) {
+            if (!this.hitboxWarned) {
+                this.hitboxWarned = true;
+                this.warn("BetterModel 히트박스 제거 실패: " + ex);
+            }
+        }
+    }
+
     private Object build(Entity var1, String var2, Predicate<String> var3, Color var4) {
         try {
             if (this.api.getMethod("model", String.class).invoke(null, var2) instanceof Optional var6 && !var6.isEmpty()) {
@@ -248,6 +283,13 @@ final class BetterModelBackend {
 
                         if (var1 instanceof org.bukkit.entity.Player) {
                             this.fixScale(var16);
+                        }
+
+                        if (var1.getScoreboardTags() != null && var1.getScoreboardTags().contains("clashmc_nohit")) {
+                            // 투사체·효과 모델: 히트박스가 있으면 플레이어가 때릴 수 있음 → 지움 (늦게 생기는 것까지 한 번 더)
+                            Object hbT = var16;
+                            this.dropHitboxes(hbT);
+                            this.later(2L, () -> this.dropHitboxes(hbT));
                         }
 
                         return var16;
