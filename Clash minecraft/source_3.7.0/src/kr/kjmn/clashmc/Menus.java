@@ -515,6 +515,7 @@ final class Menus {
         private final List<String> army;
         private final GameManager match;
         private int page;
+        private int armyPage;
 
         AssaultMenu(Clash c, Player p, List<String> army, GameManager match) {
             super(c, p);
@@ -559,10 +560,26 @@ final class Menus {
                 cnt.merge(id, 1, Integer::sum);
             }
 
-            // 윗줄: 지금 군대 (카드별 장수)
-            int slot = 0;
-            for (Map.Entry<String, Integer> e : cnt.entrySet()) {
-                if (slot >= 8) {
+            // 윗줄: 지금 군대 (카드별 장수). 종류 제한 없음, 8종류 넘으면 ◀ ▶ 로 넘겨 봄
+            List<Map.Entry<String, Integer>> kinds = new ArrayList<>(cnt.entrySet());
+            boolean more = kinds.size() > 8;
+            int per = more ? 6 : 8;
+            int armyPages = Math.max(1, (kinds.size() + per - 1) / per);
+            this.armyPage = Math.max(0, Math.min(this.armyPage, armyPages - 1));
+            int slot = more ? 1 : 0;
+            if (more) {
+                this.set(0, Ui.icon("page_prev", Material.ARROW, "§e◀ 군대 앞쪽", "§7" + (this.armyPage + 1) + " / " + armyPages + " · " + kinds.size() + "종류"), x -> {
+                    this.armyPage = (this.armyPage + armyPages - 1) % armyPages;
+                    this.open();
+                });
+                this.set(7, Ui.icon("page_next", Material.ARROW, "§e군대 뒤쪽 ▶", "§7" + (this.armyPage + 1) + " / " + armyPages + " · " + kinds.size() + "종류"), x -> {
+                    this.armyPage = (this.armyPage + 1) % armyPages;
+                    this.open();
+                });
+            }
+            int last = more ? 7 : 8;
+            for (Map.Entry<String, Integer> e : kinds.subList(Math.min(kinds.size(), this.armyPage * per), Math.min(kinds.size(), (this.armyPage + 1) * per))) {
+                if (slot >= last) {
                     break;
                 }
                 CardDef cd = this.core.cards.get(e.getKey());
@@ -579,7 +596,7 @@ final class Menus {
                     }
                 });
             }
-            for (; slot < 8; slot++) {
+            for (; slot < last; slot++) {
                 this.set(slot, Ui.icon("slot_empty", Material.LIGHT_GRAY_STAINED_GLASS_PANE, "§7빈 칸", "§7아래 유닛 카드를 눌러 넣기"), null);
             }
 

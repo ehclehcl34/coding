@@ -2314,14 +2314,14 @@ public final class Battle {
         }
 
         this.flushMoves();
-        if (this.now() % 10L == 0L) {
+        if (this.now() % 10L == 0L && !this.gm.assault) {
             this.refreshGlows();
         }
         this.sweepDeployMarks(false);
         this.hideStaleOutlines();
 
         this.all.removeIf(var0 -> var0.dead && !var0.isTower());
-        if (this.gm.hpDisplays && this.now() % 2L == 0L) {
+        if (this.gm.hpDisplays && this.now() % (this.gm.assault ? 4L : 2L) == 0L) {
             this.bars.tick();
         }
 
@@ -2625,7 +2625,13 @@ public final class Battle {
 
             if (this.now() >= var1.deployUntil && this.now() >= var1.stunUntil) {
                 Location var2 = var1.mob.getLocation();
-                Combatant var3 = this.pickTarget(var1, var2);
+                Combatant var3;
+                if (this.gm.assault && (this.now() + var1.id) % 4L != 0L
+                    && (var1.target == null || var1.target.alive() && !var1.target.hidden && this.canTarget(var1, var1.target))) {
+                    var3 = var1.target;
+                } else {
+                    var3 = this.pickTarget(var1, var2);
+                }
                 var1.target = var3;
                 if (this.specialMove(var1, var2, var3)) {
                     return;
@@ -5194,7 +5200,8 @@ public final class Battle {
     /** 유닛·건물 모델 적용 + 팀 색 테두리 발광 (config game.team-glow) */
     private boolean applyUnit(org.bukkit.entity.Entity e, String model, boolean hideBase, Color c) {
         boolean ok = this.gm.models.apply(e, model, hideBase, c);
-        if (ok && c != null && this.gm.plugin.getConfig().getBoolean("game.team-glow", true)) {
+        if (ok && c != null && this.gm.plugin.getConfig().getBoolean("game.team-glow", true)
+            && (!this.gm.assault || this.gm.plugin.getConfig().getBoolean("assault.team-glow", false))) {
             // 테두리 세기: 색을 어둡게 해서 약하게 (config game.team-glow-strength, 0~1)
             this.glowBase.put(e, c);
             this.glowLevel.remove(e.getUniqueId());

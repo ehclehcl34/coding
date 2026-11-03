@@ -37,10 +37,14 @@ final class Assault {
         this.gm = gm;
         FileConfiguration c = gm.plugin.getConfig();
         this.budget = Math.max(1, c.getInt("assault.elixir", 40));
-        this.maxUnits = Math.max(1, c.getInt("assault.max-units", 50));
+        this.maxUnits = Math.max(1, c.getInt("assault.max-units", 40));
         this.pickSeconds = Math.max(10, c.getInt("assault.pick-seconds", 45));
         this.seconds = Math.max(30, c.getInt("assault.match-seconds", 180));
-        this.interval = Math.max(1, c.getInt("assault.deploy-interval", 2));
+        this.interval = Math.max(1, c.getInt("assault.deploy-interval", 3));
+        // 데미지 숫자는 유닛이 많으면 텍스트 엔티티가 쏟아져서 렉 → 기본 끔
+        if (!c.getBoolean("assault.damage-numbers", false)) {
+            gm.damageNumbers = false;
+        }
     }
 
     // ---------- 카드 규칙 ----------
