@@ -624,6 +624,9 @@ public final class Battle {
 
     /** 카드 사용 효과음: 쓴 킹에게는 바로 귀에 또렷하게 (탑뷰처럼 멀리 떠 있어도 들림), 주변에는 크게 */
     private void playCardSound(GameTeam team, Location at) {
+        if (this.gm.assault) {
+            return;
+        }
         World w = this.A().world;
         w.playSound(at, "entity.player.attack.sweep", 1.6F, 1.3F);
         w.playSound(at, "block.wood.place", 1.6F, 0.8F);
@@ -713,6 +716,37 @@ public final class Battle {
                     }
                 }
         }
+    }
+
+    /** 돌격전: 카드 한 장을 그 칸에 바로 소환 (엘릭서·손패 없이) */
+    void assaultDeploy(GameTeam team, CardDef card, int tx, int tz, Location at) {
+        this.deployCard(team, card, tx, tz, at);
+    }
+
+    /** 돌격전: 사거리 안에 적이 없으면 전장에서 가장 가까운 적에게 감 (10틱마다만 다시 찾음) */
+    private Location hunt(Combatant c, Location from) {
+        Combatant h = c.huntTarget;
+        if (h == null || !h.alive() || h.hidden || (this.now() + c.id) % 10L == 0L) {
+            h = null;
+            double best = Double.MAX_VALUE;
+            boolean groundOnly = c.kind == Combatant.Kind.BARREL || c.card == null || c.card.targets != CardDef.Targets.AIR_GROUND;
+            for (Combatant o : this.all) {
+                if (o.team != c.team && o.alive() && !o.hidden && (o.kind == Combatant.Kind.TROOP || o.kind == Combatant.Kind.BARREL) && (!groundOnly || !o.air)) {
+                    Location l = o.loc();
+                    if (l != null) {
+                        double dx = l.getX() - from.getX();
+                        double dz = l.getZ() - from.getZ();
+                        double d = dx * dx + dz * dz;
+                        if (d < best) {
+                            best = d;
+                            h = o;
+                        }
+                    }
+                }
+            }
+            c.huntTarget = h;
+        }
+        return h == null ? null : h.loc();
     }
 
     Combatant towerAtTile(int var1, int var2) {
@@ -2640,7 +2674,7 @@ public final class Battle {
             && this.inRange(var1, var2, lock, var1.kind == Combatant.Kind.BARREL ? 0.8 : var1.card.range)) {
             return lock;
         }
-        boolean var3 = var1.kind == Combatant.Kind.BARREL || var1.card.targets == CardDef.Targets.BUILDINGS;
+        boolean var3 = !this.gm.assault && (var1.kind == Combatant.Kind.BARREL || var1.card.targets == CardDef.Targets.BUILDINGS);
         Combatant var4;
         if (var3) {
             var4 = null;
@@ -2728,11 +2762,11 @@ public final class Battle {
             } else if (var1.isTower()) {
                 return true;
             } else if (var1.kind == Combatant.Kind.BARREL) {
-                return var2.isStructure();
+                return this.gm.assault ? !var2.air : var2.isStructure();
             } else {
                 CardDef.Targets var3 = var1.card.targets;
                 if (var3 == CardDef.Targets.BUILDINGS) {
-                    return var2.isStructure();
+                    return this.gm.assault ? !var2.air : var2.isStructure();
                 } else {
                     return var3 == CardDef.Targets.GROUND ? !var2.air : true;
                 }
@@ -2777,6 +2811,9 @@ public final class Battle {
     }
 
     private Location laneGoal(Combatant var1, Location var2) {
+        if (this.gm.assault) {
+            return this.hunt(var1, var2);
+        }
         boolean var3 = var1.lane != null ? var1.lane : var2.getX() < this.A().centerX();
         TeamColor var4 = var1.team.other();
         Combatant var5 = this.tower(var4, Combatant.Kind.PRINCESS_TOWER, var3);
@@ -4826,7 +4863,11 @@ public final class Battle {
         if (this.gm.test.isAdmin(var3)) {
             this.gm.test.unitDied(var3);
         } else {
-            if (var2 && var5 != null && var5.members.contains(var3) && !var5.queue.contains(var3)) {
+            if (this.gm.assault) {
+                if (var4 != null) {
+                    var4.sendTitle("§c쓰러졌습니다", "§7남은 아군을 응원하세요 (관전)", 0, 40, 10);
+                }
+            } else if (var2 && var5 != null && var5.members.contains(var3) && !var5.queue.contains(var3)) {
                 var5.queue.addLast(var3);
                 if (var4 != null) {
                     var4.sendTitle("§c쓰러졌습니다", "§f대기열 §e" + var5.queuePos(var3) + "번째", 0, 40, 10);

@@ -13,6 +13,8 @@ import org.bukkit.entity.Player;
 public final class Combatant {
     /** 플레이어 유닛: 자기 모델을 본인 화면에 보일지 */
     boolean selfModel;
+    /** 돌격전: 쫓아가는 적 */
+    Combatant huntTarget;
     /** 넉백으로 밀려나는 남은 틱 / 틱당 이동량 */
     int knockTicks;
     double knockVx;

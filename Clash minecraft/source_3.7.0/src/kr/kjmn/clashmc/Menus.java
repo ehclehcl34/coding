@@ -52,6 +52,16 @@ final class Menus {
             this.panel(1, 0, 3, 2, "§a§l쉬움", List.of("§7봇이 느리고 무작위로 둡니다", var2, "", "§e클릭: 시작"), Material.WOODEN_SWORD, var1x -> this.go(Bot.Level.EASY));
             this.panel(1, 3, 3, 5, "§e§l보통", List.of("§7위협에 반응하고 스펠을 노립니다", var2, "", "§e클릭: 시작"), Material.IRON_SWORD, var1x -> this.go(Bot.Level.NORMAL));
             this.panel(1, 6, 3, 8, "§c§l어려움", List.of("§7엘릭서를 모아 한 라인 몰아치기", var2, "", "§e클릭: 시작"), Material.DIAMOND_SWORD, var1x -> this.go(Bot.Level.HARD));
+            this.set(49, Ui.icon("assault", Material.DIAMOND_SWORD, "§c§l돌격전 §7(미니게임)",
+                "§740 엘릭서 안에서 유닛 카드만 골라 (중복 가능)",
+                "§7양쪽 군대가 한꺼번에 돌격!",
+                "§7마지막까지 유닛이 남은 팀 승리 · 타워 없음",
+                var2,
+                "",
+                "§e클릭: 봇과 돌격전"), var1x -> {
+                this.viewer.closeInventory();
+                this.core.startAi(this.viewer, Bot.Level.NORMAL, true);
+            });
             this.backButton(45, () -> new Menus.MainMenu(this.core, this.viewer).open());
         }
 
@@ -500,6 +510,183 @@ final class Menus {
         }
     }
 
+    /** 돌격전 군대 고르기: 클릭 = 1장 넣기, Shift+클릭 = 1장 빼기 (같은 카드 여러 장 가능) */
+    static final class AssaultMenu extends Menus.Menu {
+        private final List<String> army;
+        private final GameManager match;
+        private int page;
+
+        AssaultMenu(Clash c, Player p, List<String> army, GameManager match) {
+            super(c, p);
+            this.army = army;
+            this.match = match;
+        }
+
+        @Override
+        String title() {
+            return Ui.title('', "돌격전 군대 " + Assault.cost(this.core, this.army) + "/" + this.match.as.budget + " 엘릭서");
+        }
+
+        private static ItemStack add(ItemStack it, List<String> lines) {
+            ItemMeta m = it.getItemMeta();
+            if (m != null) {
+                List<String> l = m.getLore() == null ? new ArrayList<>() : new ArrayList<>(m.getLore());
+                l.addAll(lines);
+                m.setLore(l);
+                it.setItemMeta(m);
+            }
+            return it;
+        }
+
+        private boolean editable() {
+            if (this.match.phase != GameManager.Phase.DECK) {
+                this.viewer.closeInventory();
+                return false;
+            }
+            return true;
+        }
+
+        private void deny(String why) {
+            this.viewer.playSound(this.viewer.getLocation(), "block.note_block.bass", 1.0F, 0.6F);
+            this.viewer.sendActionBar("§c" + why);
+        }
+
+        @Override
+        void render() {
+            Assault as = this.match.as;
+            Map<String, Integer> cnt = new java.util.LinkedHashMap<>();
+            for (String id : this.army) {
+                cnt.merge(id, 1, Integer::sum);
+            }
+
+            // 윗줄: 지금 군대 (카드별 장수)
+            int slot = 0;
+            for (Map.Entry<String, Integer> e : cnt.entrySet()) {
+                if (slot >= 8) {
+                    break;
+                }
+                CardDef cd = this.core.cards.get(e.getKey());
+                if (cd == null) {
+                    continue;
+                }
+                String id = e.getKey();
+                ItemStack it = add(this.core.cardItem(cd, false, false), List.of("§a군대에 " + e.getValue() + "장", "§c클릭: 1장 빼기"));
+                it.setAmount(Math.max(1, Math.min(64, e.getValue())));
+                this.set(slot++, it, sh -> {
+                    if (this.editable()) {
+                        this.army.remove(id);
+                        this.open();
+                    }
+                });
+            }
+            for (; slot < 8; slot++) {
+                this.set(slot, Ui.icon("slot_empty", Material.LIGHT_GRAY_STAINED_GLASS_PANE, "§7빈 칸", "§7아래 유닛 카드를 눌러 넣기"), null);
+            }
+
+            int cost = Assault.cost(this.core, this.army);
+            int units = Assault.unitCount(this.core, this.army);
+            List<String> info = new ArrayList<>();
+            info.add("§7남은 엘릭서 §d" + (as.budget - cost));
+            info.add("§7유닛 §f" + units + "/" + as.maxUnits + "마리 §8(렉 방지 상한)");
+            info.add("§7카드 " + this.army.size() + "장 · " + cnt.size() + "종류");
+            if (cnt.size() > 8) {
+                info.add("");
+                for (Map.Entry<String, Integer> e : cnt.entrySet()) {
+                    CardDef cd = this.core.cards.get(e.getKey());
+                    info.add("§8- §f" + (cd == null ? e.getKey() : cd.name) + " §7×" + e.getValue());
+                }
+            }
+            ItemStack el = Ui.icon("elixir", Material.AMETHYST_SHARD, "§d엘릭서 §f" + cost + " §7/ " + as.budget, info);
+            el.setAmount(Math.max(1, Math.min(64, as.budget - cost)));
+            this.set(8, el, null);
+
+            // 유닛 카드 목록 (마법·건물 제외)
+            List<CardDef> pool = new ArrayList<>();
+            for (CardDef c : this.core.cards.values()) {
+                if (Assault.allowed(this.core, c)) {
+                    pool.add(c);
+                }
+            }
+            pool.sort(Comparator.<CardDef>comparingInt(c -> c.elixir).thenComparingInt(c -> c.rarity).thenComparing(c -> c.name));
+            int pages = Math.max(1, (pool.size() + 26) / 27);
+            this.page = Math.max(0, Math.min(this.page, pages - 1));
+            int s = 9;
+            for (CardDef cd : pool.subList(this.page * 27, Math.min(pool.size(), (this.page + 1) * 27))) {
+                int n = cnt.getOrDefault(cd.id, 0);
+                String why = as.cantAdd(this.army, cd);
+                List<String> lines = new ArrayList<>();
+                lines.add("§7유닛 " + Assault.units(this.core, cd) + "마리");
+                if (n > 0) {
+                    lines.add("§a✔ 군대에 " + n + "장");
+                }
+                lines.add(why == null ? "§e클릭: 1장 넣기" : "§c" + why);
+                if (n > 0) {
+                    lines.add("§bShift+클릭: 1장 빼기");
+                }
+                ItemStack it = add(this.core.cardItem(cd, false, why != null && n == 0), lines);
+                it.setAmount(Math.max(1, Math.min(64, n)));
+                this.set(s++, Ui.glow(it, n > 0), shift -> {
+                    if (!this.editable()) {
+                        return;
+                    }
+                    if (shift) {
+                        if (this.army.remove(cd.id)) {
+                            this.open();
+                        }
+                        return;
+                    }
+                    String w = as.cantAdd(this.army, cd);
+                    if (w != null) {
+                        this.deny(w);
+                        return;
+                    }
+                    this.army.add(cd.id);
+                    this.open();
+                });
+            }
+
+            if (pages > 1) {
+                String pg = "§7" + (this.page + 1) + " / " + pages + " 쪽";
+                if (this.page > 0) {
+                    this.set(48, Ui.icon("page_prev", Material.ARROW, "§e◀ 이전 카드", pg), x -> {
+                        this.page--;
+                        this.open();
+                    });
+                }
+                if (this.page < pages - 1) {
+                    this.set(50, Ui.icon("page_next", Material.ARROW, "§e다음 카드 ▶", pg), x -> {
+                        this.page++;
+                        this.open();
+                    });
+                }
+            }
+
+            this.set(42, Ui.icon("random", Material.ENDER_PEARL, "§b랜덤 채우기", "§7남은 엘릭서를 무작위 유닛으로"), x -> {
+                if (this.editable()) {
+                    as.fillRandom(this.army);
+                    this.open();
+                }
+            });
+            this.set(43, Ui.icon("clear", Material.LAVA_BUCKET, "§c전부 빼기"), x -> {
+                if (this.editable()) {
+                    this.army.clear();
+                    this.open();
+                }
+            });
+            this.set(45, Ui.icon("close", Material.BARRIER, "§7닫기", "§7/clash deck 으로 다시 열기"), x -> this.viewer.closeInventory());
+            boolean ok = !this.army.isEmpty();
+            this.set(53, Ui.icon(ok ? "confirm" : "confirm_off", ok ? Material.EMERALD_BLOCK : Material.REDSTONE_BLOCK,
+                ok ? "§a§l이 군대로 출전" : "§c유닛을 넣어 주세요",
+                "§7클릭 = 넣기 · Shift+클릭 = 빼기",
+                "§7시간이 지나면 남은 엘릭서는 자동으로 채워집니다"), x -> {
+                if (ok && this.editable()) {
+                    this.match.confirmDeck(this.viewer);
+                }
+            });
+        }
+    }
+
+
     static final class MainMenu extends Menus.Menu {
         MainMenu(Clash var1, Player var2) {
             super(var1, var2);
@@ -886,6 +1073,11 @@ final class Menus {
                     this.set(
                         42, Ui.icon("ai", Material.IRON_SWORD, "§a§lAI 대전으로 시작", "§7방 인원 전원 vs 봇"), var1x -> new Menus.AiMenu(this.core, this.viewer).open()
                     );
+                    this.set(43, Ui.icon("assault", Material.DIAMOND_SWORD, var12 ? "§c§l돌격전으로 시작" : "§c돌격전: 짝수 인원 필요 (" + var11 + "명)",
+                        "§7랜덤 팀 · 40 엘릭서 군대 대결", "§7마지막까지 유닛이 남은 팀 승리"), var1x -> {
+                        this.viewer.closeInventory();
+                        this.core.startFriendly(this.viewer, true);
+                    });
                 } else {
                     this.set(41, Ui.icon("start_off", Material.CLOCK, "§7방장이 시작하기를 기다리는 중..."), null);
                 }

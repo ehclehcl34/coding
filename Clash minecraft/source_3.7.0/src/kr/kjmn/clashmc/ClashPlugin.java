@@ -22,7 +22,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class ClashPlugin extends JavaPlugin implements CommandExecutor, TabCompleter {
     PackHost packHost;
     private Clash core;
-    private static final List<String> SUBS = Arrays.asList("menu", "ranked", "ai", "room", "deck", "skin", "profile", "top", "ff", "leave", "status");
+    private static final List<String> SUBS = Arrays.asList("menu", "ranked", "ai", "assault", "room", "deck", "skin", "profile", "top", "ff", "leave", "status");
     private static final List<String> ADMIN = Arrays.asList("arena", "setlobby", "lobby", "start", "stop", "reload", "cleanup", "test", "trophy", "giveskin", "matches", "cards");
 
     public void onEnable() {
@@ -216,6 +216,17 @@ public final class ClashPlugin extends JavaPlugin implements CommandExecutor, Ta
                     this.core.startAi(var5, var20);
                 } else {
                     this.core.lobby.action(var5, "ai");
+                }
+
+                return true;
+            case "assault":
+            case "돌격전":
+                if (var5 != null) {
+                    if (var4.length >= 2 && (var4[1].equalsIgnoreCase("pvp") || var4[1].equals("친선") || var4[1].equals("방"))) {
+                        this.core.startFriendly(var5, true);
+                    } else {
+                        this.core.startAi(var5, Bot.Level.NORMAL, true);
+                    }
                 }
 
                 return true;

@@ -1837,3 +1837,11 @@ cards:
     mob: SKELETON
     model: clash_firecracker
     hitbox: [0.8, 1.9]
+
+# 돌격전 미니게임 (/clash assault, 방에서 /clash assault pvp)
+assault:
+  elixir: 40                 # 군대 엘릭서 한도 (유닛 카드만, 중복 가능)
+  max-units: 50              # 팀당 유닛 수 상한 (렉 방지)
+  pick-seconds: 45           # 군대 고르는 시간
+  match-seconds: 180         # 제한 시간 (끝나면 남은 체력 많은 팀 승리)
+  deploy-interval: 2         # 카드 소환 간격 (틱, 한꺼번에 소환해서 렉 걸리지 않게)

@@ -33,6 +33,8 @@ public final class Profile {
     public final Map<String, String> selected = new HashMap<>();
     /** 다른 사람 스킨도 전부 기본 모습으로 보기 */
     public boolean originalSkins;
+    /** 돌격전 군대 (중복 가능) */
+    public final List<String> assaultArmy = new ArrayList<>();
     public boolean dirty;
 
     Profile(UUID var1) {
@@ -78,6 +80,8 @@ public final class Profile {
         }
 
         this.originalSkins = var1.getBoolean("original-skins", false);
+        this.assaultArmy.clear();
+        this.assaultArmy.addAll(var1.getStringList("assault-army"));
         this.skins.clear();
         this.skins.addAll(var1.getStringList("skins"));
         this.selected.clear();
@@ -112,6 +116,7 @@ public final class Profile {
 
         var1.set("skins", new ArrayList<>(this.skins));
         var1.set("original-skins", this.originalSkins);
+        var1.set("assault-army", new ArrayList<>(this.assaultArmy));
 
         for (Entry var3 : this.selected.entrySet()) {
             var1.set("selected." + (String)var3.getKey(), var3.getValue());

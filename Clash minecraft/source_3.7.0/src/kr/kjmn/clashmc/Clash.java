@@ -382,6 +382,10 @@ public final class Clash {
     }
 
     void startAi(Player var1, Bot.Level var2) {
+        this.startAi(var1, var2, false);
+    }
+
+    void startAi(Player var1, Bot.Level var2, boolean assault) {
         Room var3 = this.roomOf.get(var1.getUniqueId());
         ArrayList var4 = new ArrayList();
         if (var3 != null) {
@@ -412,6 +416,7 @@ public final class Clash {
                 var3.match = var8;
             }
 
+            var8.assault = assault;
             var8.start(var4, var2);
         }
     }
@@ -620,6 +625,10 @@ public final class Clash {
     }
 
     void startFriendly(Player var1) {
+        this.startFriendly(var1, false);
+    }
+
+    void startFriendly(Player var1, boolean assault) {
         Room var2 = this.roomOf.get(var1.getUniqueId());
         if (var2 == null) {
             var1.sendMessage("§c방이 없습니다.");
@@ -648,6 +657,7 @@ public final class Clash {
                 } else {
                     var2.match = var8;
                     var2.broadcast("§a경기 시작! §7(" + var8.slot.name + ")");
+                    var8.assault = assault;
                     var8.start(var3, null);
                 }
             } else {

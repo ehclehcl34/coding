@@ -43,6 +43,9 @@ public final class GameManager {
     final ModelHook models;
     final Map<String, CardDef> cards;
     final Battle battle;
+    /** 돌격전 미니게임 */
+    boolean assault;
+    Assault as;
     final TestMode test = new TestMode(this);
     Bot bot;
     boolean botEnabled = true;
@@ -157,8 +160,12 @@ public final class GameManager {
         this.kingFlySpeed = var1.getDouble("game.king-fly-speed", 0.06);
     }
 
+    String modeName() {
+        return this.assault ? (this.mode == GameManager.Mode.AI ? "돌격전 (AI)" : "돌격전") : this.mode.ko;
+    }
+
     String tag() {
-        return this.mode.cc + this.mode.ko + " §8#" + this.id + " §7(" + this.slot.name + ")";
+        return this.mode.cc + this.modeName() + " §8#" + this.id + " §7(" + this.slot.name + ")";
     }
 
     void broadcastGame(String var1) {
@@ -166,7 +173,7 @@ public final class GameManager {
             for (UUID var5 : var3.members) {
                 Player var6 = Bukkit.getPlayer(var5);
                 if (var6 != null) {
-                    var6.sendMessage("§8[" + this.mode.cc + this.mode.ko + "§8] §r" + var1);
+                    var6.sendMessage("§8[" + this.mode.cc + this.modeName() + "§8] §r" + var1);
                 }
             }
         }
@@ -226,6 +233,10 @@ public final class GameManager {
         }
 
         Collections.shuffle(var3, this.rng);
+        if (this.assault) {
+            this.as = new Assault(this);
+            this.botEnabled = false;
+        }
         this.teams.clear();
         GameTeam var15 = new GameTeam(TeamColor.BLUE);
         GameTeam var16 = new GameTeam(TeamColor.RED);
@@ -277,6 +288,10 @@ public final class GameManager {
                     var14.dirty = true;
                 }
 
+                if (this.assault) {
+                    var20.deck.addAll(this.core.profiles.get(var20.king).assaultArmy);
+                    this.as.sanitize(var20.deck);
+                } else
                 for (String var33 : this.core.profiles.get(var20.king).deck()) {
                     if (this.core.usable(var33) && var20.deck.size() < 8 && !var20.deck.contains(var33)) {
                         var20.deck.add(var33);
@@ -286,12 +301,17 @@ public final class GameManager {
         }
 
         if (var6) {
+            if (this.assault) {
+                this.as.fillRandom(var16.deck);
+            } else
             this.fillRandom(var16);
             var16.deckReady = true;
             this.bot = new Bot(this, TeamColor.RED, var2 == null ? Bot.Level.NORMAL : var2);
         }
 
-        this.battle.buildTowers();
+        if (!this.assault) {
+            this.battle.buildTowers();
+        }
         this.bar = Bukkit.createBossBar("§6덱 확인 중...", BarColor.YELLOW, BarStyle.SOLID, new BarFlag[0]);
 
         for (GameTeam var21 : this.teams.values()) {
@@ -307,13 +327,17 @@ public final class GameManager {
                     if (var26.equals(var21.king)) {
                         var31.setGameMode(GameMode.ADVENTURE);
                         var31.teleport(this.arena.balcony(var21.color));
-                        var31.sendTitle("§6당신은 킹입니다", var21.color.label() + " 팀 §7- " + this.mode.ko, 5, 60, 10);
-                        var31.sendMessage("§6[킹] §f카드를 들고 경기장 칸을 우클릭하면 소환됩니다.");
+                        var31.sendTitle("§6당신은 킹입니다", var21.color.label() + " 팀 §7- " + this.modeName(), 5, 60, 10);
+                        var31.sendMessage(this.assault
+                            ? "§c[돌격전] §f" + this.as.budget + " 엘릭서 안에서 유닛 카드만(중복 가능) 골라 군대를 짜세요. 시작하면 전부 한꺼번에 돌격! 마지막까지 유닛이 남은 팀 승리"
+                            : "§6[킹] §f카드를 들고 경기장 칸을 우클릭하면 소환됩니다.");
                     } else {
                         var31.setGameMode(GameMode.SPECTATOR);
                         var31.teleport(this.arena.spectate(var21.color));
                         var31.sendTitle(var21.color.label() + " 팀 유닛", "§f소환 대기열 §e" + var21.queuePos(var26) + "번째", 5, 60, 10);
-                        var31.sendMessage("§b[유닛] §f킹이 카드를 쓰면 대기열 순서대로 그 유닛으로 소환됩니다. 팀 채팅으로 의견을 보낼 수 있어요 (슬로우모드).");
+                        var31.sendMessage(this.assault
+                            ? "§c[돌격전] §f킹이 고른 군대 중 한 유닛으로 소환됩니다. 죽으면 관전!"
+                            : "§b[유닛] §f킹이 카드를 쓰면 대기열 순서대로 그 유닛으로 소환됩니다. 팀 채팅으로 의견을 보낼 수 있어요 (슬로우모드).");
                     }
                 }
             }
@@ -332,13 +356,13 @@ public final class GameManager {
         }
 
         this.phase = GameManager.Phase.DECK;
-        this.deckLeft = this.deckSeconds;
+        this.deckLeft = this.assault ? this.as.pickSeconds : this.deckSeconds;
         boolean var19 = true;
 
         for (GameTeam var24 : this.teams.values()) {
             if (var24.king != null) {
                 Player var27 = var24.kingPlayer();
-                if (var24.deck.size() == 8) {
+                if (!this.assault && var24.deck.size() == 8) {
                     var24.deckReady = true;
                     if (var27 != null) {
                         var27.sendMessage("§a저장된 덱으로 출전합니다. §7(바꾸려면 " + this.deckSeconds + "초 안에 덱 메뉴)");
@@ -378,7 +402,9 @@ public final class GameManager {
 
     void openDeck(Player var1) {
         GameTeam var2 = this.kingTeam(var1);
-        if (this.phase == GameManager.Phase.DECK && var2 != null) {
+        if (this.assault && this.phase == GameManager.Phase.DECK && var2 != null) {
+            new Menus.AssaultMenu(this.core, var1, var2.deck, this).open();
+        } else if (this.phase == GameManager.Phase.DECK && var2 != null) {
             new Menus.DeckMenu(this.core, var1, var2.deck, this).open();
         } else if (this.phase == GameManager.Phase.PLAYING && var2 != null) {
             var1.sendMessage("§c경기 중에는 덱을 바꿀 수 없습니다.");
@@ -388,6 +414,32 @@ public final class GameManager {
     }
 
     void confirmDeck(Player var1) {
+        if (this.assault) {
+            GameTeam t = this.kingTeam(var1);
+            if (t == null || this.phase != GameManager.Phase.DECK) {
+                return;
+            }
+            this.as.sanitize(t.deck);
+            if (t.deck.isEmpty()) {
+                var1.sendMessage("§c유닛 카드를 한 장 이상 넣어야 합니다.");
+                return;
+            }
+            Profile pr = this.core.profiles.get(var1);
+            pr.assaultArmy.clear();
+            pr.assaultArmy.addAll(t.deck);
+            pr.dirty = true;
+            t.deckReady = true;
+            var1.closeInventory();
+            this.broadcastGame(t.color.label() + " §f팀 군대 준비 완료 §7(" + Assault.cost(this.core, t.deck) + "/" + this.as.budget + "\ud83d\udca7 · 유닛 " + Assault.unitCount(this.core, t.deck) + "마리)");
+            boolean all = true;
+            for (GameTeam o : this.teams.values()) {
+                all &= o.deckReady || o.king == null;
+            }
+            if (all) {
+                this.deckLeft = Math.min(this.deckLeft, 3);
+            }
+            return;
+        }
         GameTeam var2 = this.kingTeam(var1);
         if (var2 != null && this.phase == GameManager.Phase.DECK) {
             if (var2.deck.size() != 8) {
@@ -416,6 +468,9 @@ public final class GameManager {
     void forceStart() {
         if (this.phase == GameManager.Phase.DECK) {
             for (GameTeam var2 : this.teams.values()) {
+                if (this.assault) {
+                    this.as.fillRandom(var2.deck);
+                } else
                 this.fillRandom(var2);
                 var2.deckReady = true;
             }
@@ -425,6 +480,10 @@ public final class GameManager {
     }
 
     void beginPlay() {
+        if (this.assault) {
+            this.beginAssault();
+            return;
+        }
         for (GameTeam var2 : this.teams.values()) {
             // 관리자가 끈 카드는 빼고 빈 칸 채우기
             this.fillRandom(var2);
@@ -459,6 +518,34 @@ public final class GameManager {
         this.playAll("entity.ender_dragon.growl", 0.6F, 1.2F);
     }
 
+    /** 돌격전 시작: 군대 확정 → 양쪽 군대 소환 */
+    void beginAssault() {
+        for (GameTeam t : this.teams.values()) {
+            if (!t.deckReady || t.deck.isEmpty()) {
+                this.as.fillRandom(t.deck);
+            } else {
+                this.as.sanitize(t.deck);
+            }
+            t.elixir = 0.0;
+            t.deckReady = true;
+            Player k = t.kingPlayer();
+            if (k != null) {
+                k.closeInventory();
+                k.getInventory().clear();
+            }
+            this.broadcastGame(t.color.label() + " §f팀 군대: §d" + Assault.cost(this.core, t.deck) + "\ud83d\udca7 §7· 카드 " + t.deck.size() + "장 · 유닛 " + Assault.unitCount(this.core, t.deck) + "마리");
+        }
+        this.secondsLeft = this.as.seconds;
+        this.overtime = false;
+        this.phase = GameManager.Phase.PLAYING;
+        this.playStartTick = this.tick;
+        this.bar.setColor(BarColor.RED);
+        this.as.begin();
+        this.titleAll("§c§l돌격!", "§f마지막까지 유닛이 남은 팀이 승리");
+        this.playAll("entity.ender_dragon.growl", 0.6F, 1.2F);
+        this.playAll("event.raid.horn", 1.0F, 1.0F);
+    }
+
     void equipKing(Player var1, GameTeam var2) {
         var1.setGameMode(GameMode.ADVENTURE);
         var1.teleport(this.arena.balcony(var2.color));
@@ -489,7 +576,9 @@ public final class GameManager {
                                     var4,
                                     var3.deckReady
                                         ? "§a준비 완료 §7- " + this.deckLeft + "초 후 시작"
-                                        : "§e덱 " + var3.deck.size() + "/8 §7- §f" + this.deckLeft + "초 §7(시간이 지나면 자동 완성)"
+                                        : (this.assault
+                                            ? "§e군대 §d" + Assault.cost(this.core, var3.deck) + "/" + this.as.budget + "\ud83d\udca7 §7- §f" + this.deckLeft + "초 §7(시간이 지나면 자동 완성)"
+                                            : "§e덱 " + var3.deck.size() + "/8 §7- §f" + this.deckLeft + "초 §7(시간이 지나면 자동 완성)")
                                 );
                             }
 
@@ -504,7 +593,7 @@ public final class GameManager {
 
                     if (this.bar != null) {
                         this.bar.setTitle("§6덱 확인 §f" + this.deckLeft + "초");
-                        this.bar.setProgress(Math.max(0.0, Math.min(1.0, (double)this.deckLeft / Math.max(1, this.deckSeconds))));
+                        this.bar.setProgress(Math.max(0.0, Math.min(1.0, (double)this.deckLeft / Math.max(1, this.assault ? this.as.pickSeconds : this.deckSeconds))));
                     }
 
                     if (var1 && this.deckLeft > 3) {
@@ -526,7 +615,11 @@ public final class GameManager {
                         this.bot.tick();
                     }
 
-                    this.regenElixir();
+                    if (this.assault) {
+                        this.as.tick();
+                    } else {
+                        this.regenElixir();
+                    }
                     if (this.tick % 20L == 0L) {
                         this.timerSecond();
                     }
@@ -555,6 +648,13 @@ public final class GameManager {
     }
 
     void timerSecond() {
+        if (this.assault) {
+            this.secondsLeft--;
+            if (this.secondsLeft <= 0 && this.phase == GameManager.Phase.PLAYING) {
+                this.as.timeUp();
+            }
+            return;
+        }
         if (!this.test.active || !this.test.timerFrozen) {
             this.secondsLeft--;
             if (!this.overtime && this.secondsLeft == this.doubleLast) {
@@ -691,6 +791,9 @@ public final class GameManager {
     }
 
     void giveHand(GameTeam var1) {
+        if (this.assault) {
+            return;
+        }
         Player var2 = var1.kingPlayer();
         if (var2 != null) {
             if (!this.activeUnits.contains(var1.king)) {
@@ -957,6 +1060,10 @@ public final class GameManager {
     }
 
     void updateHud() {
+        if (this.assault) {
+            this.as.hud();
+            return;
+        }
         GameTeam var1 = this.teams.get(TeamColor.BLUE);
         GameTeam var2 = this.teams.get(TeamColor.RED);
         if (this.bar != null) {
@@ -1045,7 +1152,7 @@ public final class GameManager {
 
     void createBoard(GameTeam var1) {
         var1.board = Bukkit.getScoreboardManager().getNewScoreboard();
-        Objective var2 = var1.board.registerNewObjective("clash", "dummy", "§6§l클래시 마크 §7" + this.mode.ko);
+        Objective var2 = var1.board.registerNewObjective("clash", "dummy", "§6§l클래시 마크 §7" + this.modeName());
         var2.setDisplaySlot(DisplaySlot.SIDEBAR);
         var1.boardLines.clear();
     }
@@ -1061,9 +1168,9 @@ public final class GameManager {
                         var4.add(
                             "§f시간 " + (this.overtime ? "§c연장 " : "") + this.secondsLeft / 60 + ":" + String.format("%02d", Math.max(0, this.secondsLeft % 60))
                         );
-                        var4.add("§9" + this.teams.get(TeamColor.BLUE).crowns + " §f: §c" + this.teams.get(TeamColor.RED).crowns);
+                        var4.add(this.assault ? this.as.score() : "§9" + this.teams.get(TeamColor.BLUE).crowns + " §f: §c" + this.teams.get(TeamColor.RED).crowns);
 
-                        for (TeamColor var8 : TeamColor.values()) {
+                        for (TeamColor var8 : this.assault ? new TeamColor[0] : TeamColor.values()) {
                             StringBuilder var9 = new StringBuilder(var8.cc + (var8 == var2.color ? "아군 " : "적 "));
 
                             for (Combatant var11 : this.battle.all) {
