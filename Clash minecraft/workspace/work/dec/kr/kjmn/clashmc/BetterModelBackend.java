@@ -285,8 +285,10 @@ final class BetterModelBackend {
                             this.fixScale(var16);
                         }
 
-                        if (var1.getScoreboardTags() != null && var1.getScoreboardTags().contains("clashmc_nohit")) {
-                            // 투사체·효과 모델: 히트박스가 있으면 플레이어가 때릴 수 있음 → 지움 (늦게 생기는 것까지 한 번 더)
+                        if (var1 instanceof org.bukkit.entity.ArmorStand
+                            || var1.getScoreboardTags() != null && var1.getScoreboardTags().contains("clashmc_nohit")) {
+                            // 아머스탠드에 붙는 모델 (투사체·효과·타워·건물 장식): BetterModel 히트박스가 있으면
+                            // 플레이어 공격이 거기에 막힘 → 지움 (늦게 생기는 것까지 한 번 더). 클릭 판정은 따로 Interaction 으로 함
                             Object hbT = var16;
                             this.dropHitboxes(hbT);
                             this.later(2L, () -> this.dropHitboxes(hbT));
