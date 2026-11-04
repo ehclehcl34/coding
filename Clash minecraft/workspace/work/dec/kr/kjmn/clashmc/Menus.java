@@ -794,6 +794,16 @@ final class Menus {
                     this.refresh();
                 }
             );
+            this.set(50, Ui.icon("spectate", Material.ENDER_EYE, "§3§l관전", "§7진행 중인 경기 관전", "§e클릭: 관전 목록 §8(/관전)"),
+                var1x -> new StreamerMenus.SpectateMenu(this.core, this.viewer).open());
+            boolean isStreamer = this.core.streamers.streamers.containsKey(this.viewer.getUniqueId());
+            if (isStreamer || this.viewer.hasPermission("clash.admin")) {
+                boolean live = this.core.streamers.live(this.viewer);
+                this.set(52, Ui.icon(isStreamer ? (live ? "live_on" : "live_off") : "streamer", Material.REDSTONE_TORCH,
+                        isStreamer ? "§c§l스트리머 모드 " + (live ? "§a켜짐" : "§7꺼짐") : "§d§l스트리머 관리",
+                        isStreamer ? "§7방송용 설정 메뉴" : "§7스트리머 지정 / 해제 (관리자)", "§e클릭: 열기 §8(/스트리머)"),
+                    var1x -> StreamerMenus.openFor(this.core, this.viewer));
+            }
         }
     }
 

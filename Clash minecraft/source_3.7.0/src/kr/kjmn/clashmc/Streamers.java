@@ -221,14 +221,7 @@ final class Streamers implements Listener {
                         return;
                     }
 
-                    Opt o = this.streamers.computeIfAbsent(id, k -> new Opt());
-                    o.name = name;
-                    this.save();
-                    s.sendMessage("§d[스트리머] §f" + name + " 님을 스트리머로 지정했습니다.");
-                    if (t != null) {
-                        t.sendMessage("§d[스트리머] §f스트리머로 지정됐습니다! §e/스트리머 §f로 스트리머 모드를 켜고 끌 수 있어요.");
-                    }
-
+                    this.designate(s, id, name);
                     return;
                 }
                 case "해제":
@@ -250,15 +243,7 @@ final class Streamers implements Listener {
                         return;
                     }
 
-                    Opt o = this.streamers.remove(found);
-                    this.save();
-                    Player t = Bukkit.getPlayer(found);
-                    if (t != null) {
-                        this.applyOff(t);
-                        t.sendMessage("§d[스트리머] §7스트리머 지정이 해제됐습니다.");
-                    }
-
-                    s.sendMessage("§d[스트리머] §f" + o.name + " 님 스트리머 지정 해제");
+                    this.undesignate(s, found);
                     return;
                 }
                 case "목록":
@@ -276,6 +261,16 @@ final class Streamers implements Listener {
 
         if (p == null) {
             s.sendMessage("§f/스트리머 지정|해제 <닉> §8| §f/스트리머 목록 §8| §f/관전 켜기|끄기");
+            return;
+        }
+
+        if (sub.isEmpty() || sub.equals("메뉴") || sub.equals("menu")) {
+            StreamerMenus.openFor(this.core, p);
+            return;
+        }
+
+        if (admin && (sub.equals("관리") || sub.equals("admin"))) {
+            new StreamerMenus.AdminMenu(this.core, p).open();
             return;
         }
 
@@ -312,30 +307,108 @@ final class Streamers implements Listener {
             case "status":
                 this.status(p, o);
                 return;
-            case "":
             case "켜기":
             case "끄기":
             case "on":
-            case "off": {
-                boolean want = sub.isEmpty() ? !o.on : (sub.equals("켜기") || sub.equals("on"));
-                o.on = want;
-                if (want) {
-                    this.applyOn(p);
-                    p.sendMessage("§c● §d[스트리머] §f스트리머 모드 §a켜짐");
-                    this.status(p, o);
-                } else {
-                    this.applyOff(p);
-                    p.sendMessage("§d[스트리머] §f스트리머 모드 §7꺼짐");
-                }
-
-                break;
-            }
+            case "off":
+                this.setOn(p, sub.equals("켜기") || sub.equals("on"));
+                return;
             default:
                 this.status(p, o);
                 return;
         }
 
         this.save();
+    }
+
+    // ------------------------------------------------------------ GUI · 명령어 공용 동작
+
+    void designate(CommandSender s, UUID id, String name) {
+        Opt o = this.streamers.computeIfAbsent(id, k -> new Opt());
+        o.name = name;
+        this.save();
+        s.sendMessage("§d[스트리머] §f" + name + " 님을 스트리머로 지정했습니다.");
+        Player t = Bukkit.getPlayer(id);
+        if (t != null) {
+            t.sendMessage("§d[스트리머] §f스트리머로 지정됐습니다! §e/스트리머 §f로 설정 메뉴를 열 수 있어요.");
+            t.playSound(t.getLocation(), "entity.player.levelup", 0.7F, 1.4F);
+        }
+    }
+
+    void undesignate(CommandSender s, UUID id) {
+        Opt o = this.streamers.get(id);
+        if (o == null) {
+            return;
+        }
+
+        Player t = Bukkit.getPlayer(id);
+        if (t != null) {
+            this.applyOff(t);
+            t.sendMessage("§d[스트리머] §7스트리머 지정이 해제됐습니다.");
+        }
+
+        this.streamers.remove(id);
+        this.save();
+        s.sendMessage("§d[스트리머] §f" + o.name + " 님 스트리머 지정 해제");
+    }
+
+    void setOn(Player p, boolean want) {
+        Opt o = this.streamers.get(p.getUniqueId());
+        if (o == null) {
+            return;
+        }
+
+        o.name = p.getName();
+        o.on = want;
+        if (want) {
+            this.applyOn(p);
+            p.sendMessage("§c● §d[스트리머] §f스트리머 모드 §a켜짐");
+            p.playSound(p.getLocation(), "block.note_block.pling", 0.8F, 1.6F);
+        } else {
+            this.applyOff(p);
+            p.sendMessage("§d[스트리머] §f스트리머 모드 §7꺼짐");
+            p.playSound(p.getLocation(), "block.note_block.bass", 0.8F, 0.8F);
+        }
+
+        this.save();
+    }
+
+    /** whisper / chat / filter 켜고 끄기 */
+    void setOption(Player p, String key) {
+        Opt o = this.streamers.get(p.getUniqueId());
+        if (o == null) {
+            return;
+        }
+
+        switch (key) {
+            case "whisper":
+                o.whisperBlock = !o.whisperBlock;
+                break;
+            case "chat":
+                o.chatOff = !o.chatOff;
+                break;
+            case "filter":
+                o.filter = !o.filter;
+                break;
+            default:
+                return;
+        }
+
+        this.save();
+    }
+
+    void setSpectateEnabled(CommandSender s, boolean on) {
+        this.spectateEnabled = on;
+        this.save();
+        s.sendMessage("§b[관전] §f전체 관전 " + onOff(on));
+        if (!on) {
+            for (UUID id : new ArrayList<>(this.spectating.keySet())) {
+                Player sp = Bukkit.getPlayer(id);
+                if (sp != null) {
+                    this.stopSpectate(sp, "§c관리자가 관전을 껐습니다.");
+                }
+            }
+        }
     }
 
     private void status(Player p, Opt o) {
@@ -352,18 +425,7 @@ final class Streamers implements Listener {
         Player p = s instanceof Player pp ? pp : null;
         String sub = a.length == 0 ? "" : a[0];
         if (admin && (sub.equals("켜기") || sub.equalsIgnoreCase("on") || sub.equals("끄기") || sub.equalsIgnoreCase("off"))) {
-            this.spectateEnabled = sub.equals("켜기") || sub.equalsIgnoreCase("on");
-            this.save();
-            s.sendMessage("§b[관전] §f전체 관전 " + onOff(this.spectateEnabled));
-            if (!this.spectateEnabled) {
-                for (UUID id : new ArrayList<>(this.spectating.keySet())) {
-                    Player sp = Bukkit.getPlayer(id);
-                    if (sp != null) {
-                        this.stopSpectate(sp, "§c관리자가 관전을 껐습니다.");
-                    }
-                }
-            }
-
+            this.setSpectateEnabled(s, sub.equals("켜기") || sub.equalsIgnoreCase("on"));
             return;
         }
 
@@ -372,13 +434,8 @@ final class Streamers implements Listener {
             return;
         }
 
-        if (sub.isEmpty()) {
-            if (this.spectating(p)) {
-                this.stopSpectate(p, "§7관전을 그만뒀습니다.");
-            } else {
-                p.sendMessage("§f/관전 <닉네임> §7- 경기 관전 §8| §f/관전 나가기" + (admin ? " §8| §c/관전 켜기|끄기 §7(지금 " + onOff(this.spectateEnabled) + "§7)" : ""));
-            }
-
+        if (sub.isEmpty() || sub.equals("목록") || sub.equalsIgnoreCase("list")) {
+            new StreamerMenus.SpectateMenu(this.core, p).open();
             return;
         }
 
@@ -396,6 +453,26 @@ final class Streamers implements Listener {
     }
 
     void spectate(Player p, String targetName) {
+        Player t = Bukkit.getPlayerExact(targetName);
+        if (t == null) {
+            t = Bukkit.getPlayer(targetName);
+        }
+
+        if (t == null) {
+            p.sendMessage("§c" + targetName + " 님은 접속 중이 아닙니다.");
+            return;
+        }
+
+        GameManager gm = this.core.matchOf(t);
+        if (gm == null) {
+            p.sendMessage("§c" + t.getName() + " 님은 경기 중이 아닙니다.");
+            return;
+        }
+
+        this.spectateMatch(p, gm, gm.teamOf.get(t.getUniqueId()));
+    }
+
+    void spectateMatch(Player p, GameManager gm, TeamColor tc) {
         if (!this.spectateEnabled) {
             p.sendMessage("§c지금은 관전이 꺼져 있습니다.");
             return;
@@ -416,19 +493,8 @@ final class Streamers implements Listener {
             return;
         }
 
-        Player t = Bukkit.getPlayerExact(targetName);
-        if (t == null) {
-            t = Bukkit.getPlayer(targetName);
-        }
-
-        if (t == null) {
-            p.sendMessage("§c" + targetName + " 님은 접속 중이 아닙니다.");
-            return;
-        }
-
-        GameManager gm = this.core.matchOf(t);
-        if (gm == null || gm.mode == GameManager.Mode.TEST || gm.phase == GameManager.Phase.ENDING || gm.phase == GameManager.Phase.DONE) {
-            p.sendMessage("§c" + t.getName() + " 님은 경기 중이 아닙니다.");
+        if (!this.core.matches.contains(gm) || gm.mode == GameManager.Mode.TEST || gm.phase == GameManager.Phase.ENDING || gm.phase == GameManager.Phase.DONE) {
+            p.sendMessage("§c이미 끝난 경기입니다.");
             return;
         }
 
@@ -442,7 +508,6 @@ final class Streamers implements Listener {
             old.bar.removePlayer(p);
         }
 
-        TeamColor tc = gm.teamOf.get(t.getUniqueId());
         this.core.lobby.leaveLobby(p);
         p.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
         p.setGameMode(GameMode.SPECTATOR);
@@ -452,7 +517,7 @@ final class Streamers implements Listener {
         }
 
         this.spectating.put(p.getUniqueId(), gm);
-        p.sendMessage("§b[관전] §f" + t.getName() + " 님의 경기 관전 중 §8(" + gm.modeName() + "§8) §7- 나가기: §f/관전 나가기");
+        p.sendMessage("§b[관전] §f경기 #" + gm.id + " 관전 중 §8(" + gm.modeName() + "§8) §7- 나가기: §f/관전 나가기");
     }
 
     void stopSpectate(Player p, String msg) {
