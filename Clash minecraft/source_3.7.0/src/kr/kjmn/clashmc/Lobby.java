@@ -195,6 +195,7 @@ final class Lobby {
             Objective var3 = var2.getObjective("lobby");
             if (var3 != null) {
                 Profile var4 = this.core.profiles.get(var1);
+                boolean live = this.core.streamers.live(var1);
                 ArrayList var5 = new ArrayList();
                 var5.add("§8" + "─".repeat(14));
                 var5.add(Ranks.label(var4.trophies));
@@ -215,13 +216,13 @@ final class Lobby {
                     var5.add("§6매칭 중 §f" + var8 / 60L + ":" + String.format("%02d", var8 % 60L));
                 } else if (this.core.roomOf.containsKey(var1.getUniqueId())) {
                     Room var12 = this.core.roomOf.get(var1.getUniqueId());
-                    var5.add("§b친선전 방 §f" + var12.code + " §7(" + var12.members.size() + "명)");
+                    var5.add("§b친선전 방 §f" + (live ? "" : var12.code + " ") + "§7(" + var12.members.size() + "명)");
                 } else {
                     var5.add("§7대기 중");
                 }
 
                 var5.add("§7진행 중 경기 §f" + this.core.matches.size() + " §8/ " + this.core.arenas.slots.size());
-                var5.add("§7랭크 대기열 §f" + this.core.rankedQueue.size() + "명");
+                var5.add("§7랭크 대기열 §f" + (live ? "§8비공개" : this.core.rankedQueue.size() + "명"));
                 var5.add("§8" + "─".repeat(14) + " ");
                 List<String> var13 = this.boardLines.get(var1.getUniqueId());
                 ArrayList var9 = new ArrayList();
@@ -259,9 +260,7 @@ final class Lobby {
                                 + var3 / 60L
                                 + ":"
                                 + String.format("%02d", var3 % 60L)
-                                + " §7· 대기 "
-                                + this.core.rankedQueue.size()
-                                + "명"
+                                + (this.core.streamers.live(var2) ? "" : " §7· 대기 " + this.core.rankedQueue.size() + "명")
                                 + (this.core.arenas.freeCount() == 0 ? " §c(빈 경기장 대기)" : "")
                         );
                     }
@@ -294,7 +293,7 @@ final class Lobby {
 
             if (this.core.tick % 5L == 0L) {
                 for (Player var17 : Bukkit.getOnlinePlayers()) {
-                    if (!this.core.inGame(var17) && var17.getWorld() == this.origin.getWorld()) {
+                    if (!this.core.inGame(var17) && !this.core.streamers.spectating(var17) && var17.getWorld() == this.origin.getWorld()) {
                         String var22 = null;
 
                         for (Lobby.Portal var5 : PORTALS) {

@@ -339,6 +339,8 @@ public final class GameManager {
                             ? "§c[돌격전] §f킹이 고른 군대 중 한 유닛으로 소환됩니다. 죽으면 관전!"
                             : "§b[유닛] §f킹이 카드를 쓰면 대기열 순서대로 그 유닛으로 소환됩니다. 팀 채팅으로 의견을 보낼 수 있어요 (슬로우모드).");
                     }
+
+                    var31.sendMessage("§7경기 중 채팅은 팀에게만 보입니다. §e!§7로 시작하면 전체 채팅 §8(예: !안녕)");
                 }
             }
 
@@ -720,6 +722,11 @@ public final class GameManager {
                             var8.sendTitle("§6§l승리!", "§f" + var2 + var9, 5, 90, 20);
                         } else {
                             var8.sendTitle("§c§l패배", "§7" + var2 + var9, 5, 90, 20);
+                        }
+
+                        if (this.core.streamers.live(var7)) {
+                            this.core.streamers.celebrate(var8, var1 == null ? 0 : (var1 == var5.color ? 1 : -1), var2 + var9,
+                                this.teams.get(TeamColor.BLUE).crowns, this.teams.get(TeamColor.RED).crowns);
                         }
                     }
                 }

@@ -100,6 +100,7 @@ public final class GameListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent var1) {
         this.core.lobby.onJoin(var1.getPlayer());
+        this.core.streamers.onJoin(var1.getPlayer());
         if (this.core.models != null) {
             this.core.models.refreshViewer(var1.getPlayer());
         }
@@ -442,6 +443,8 @@ public final class GameListener implements Listener {
     public void onChat(AsyncPlayerChatEvent var1) {
         Player var2 = var1.getPlayer();
         UUID var3 = var2.getUniqueId();
+        Streamers.TEAM_CHAT.set(false);
+        String live = this.core.streamers.live(var3) ? "§c§l[LIVE] §r" : "";
         GameManager var4 = null;
 
         for (GameManager var6 : new ArrayList<>(this.core.matches)) {
@@ -453,7 +456,7 @@ public final class GameListener implements Listener {
 
         if (var4 == null) {
             Profile var15 = this.core.profiles.get(var3);
-            var1.setFormat(Ranks.badge(var15.trophies) + " §f%1$s§7: §f%2$s");
+            var1.setFormat(live + Ranks.badge(var15.trophies) + " §f%1$s§7: §f%2$s");
         } else {
             TeamColor var14 = var4.teamOf.get(var3);
             GameTeam var16 = var14 == null ? null : var4.teams.get(var14);
@@ -473,9 +476,18 @@ public final class GameListener implements Listener {
                     var4.chatCooldown.put(var3, var9);
                 }
 
-                var1.getRecipients().removeIf(var1x -> !var16.members.contains(var1x.getUniqueId()));
                 String var17 = var7 ? "§6[킹]" : (var8 ? "§7[대기]" : "§a[유닛]");
-                var1.setFormat(var14.cc + "[팀] " + var17 + " §f%1$s§7: §f%2$s");
+                String msg = var1.getMessage();
+                String rest = msg != null && msg.startsWith("!") ? msg.substring(1).trim() : "";
+                if (!rest.isEmpty()) {
+                    // !로 시작하면 경기 중에도 전체 채팅
+                    var1.setMessage(rest);
+                    var1.setFormat("§e[전체] " + live + var14.cc + "[" + var14.ko + "]" + var17 + " §f%1$s§7: §f%2$s");
+                } else {
+                    var1.getRecipients().removeIf(var1x -> !var16.members.contains(var1x.getUniqueId()));
+                    Streamers.TEAM_CHAT.set(true);
+                    var1.setFormat(var14.cc + "[팀] " + live + var17 + " §f%1$s§7: §f%2$s");
+                }
             }
         }
     }

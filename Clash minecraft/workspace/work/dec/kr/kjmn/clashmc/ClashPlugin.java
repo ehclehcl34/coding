@@ -84,10 +84,13 @@ public final class ClashPlugin extends JavaPlugin implements CommandExecutor, Ta
         this.packHost.start();
         Bukkit.getScheduler().runTaskLater(this, () -> this.core.checkModels(0), 100L);
         this.getServer().getPluginManager().registerEvents(new GameListener(this.core), this);
-        PluginCommand var13 = this.getCommand("clash");
-        if (var13 != null) {
-            var13.setExecutor(this);
-            var13.setTabCompleter(this);
+        this.getServer().getPluginManager().registerEvents(this.core.streamers, this);
+        for (String cn : new String[]{"clash", "스트리머", "관전"}) {
+            PluginCommand var13 = this.getCommand(cn);
+            if (var13 != null) {
+                var13.setExecutor(this);
+                var13.setTabCompleter(this);
+            }
         }
 
         this.core.start();
@@ -176,8 +179,25 @@ public final class ClashPlugin extends JavaPlugin implements CommandExecutor, Ta
     public boolean onCommand(CommandSender var1, Command var2, String var3, String[] var4) {
         Player var5 = var1 instanceof Player var6 ? var6 : null;
         boolean var17 = var1.hasPermission("clash.admin");
+        String cmdName = var2 == null ? "clash" : var2.getName();
+        if ("스트리머".equals(cmdName)) {
+            this.core.streamers.command(var1, var4);
+            return true;
+        } else if ("관전".equals(cmdName)) {
+            this.core.streamers.spectateCommand(var1, var4);
+            return true;
+        }
+
         String var7 = var4.length == 0 ? (var5 != null ? "menu" : "help") : var4[0].toLowerCase();
         switch (var7) {
+            case "streamer":
+            case "스트리머":
+                this.core.streamers.command(var1, Arrays.copyOfRange(var4, 1, var4.length));
+                return true;
+            case "spectate":
+            case "관전":
+                this.core.streamers.spectateCommand(var1, Arrays.copyOfRange(var4, 1, var4.length));
+                return true;
             case "menu":
             case "play":
             case "메뉴":
@@ -309,7 +329,9 @@ public final class ClashPlugin extends JavaPlugin implements CommandExecutor, Ta
                     return true;
                 }
 
-                if (this.core.queued(var5.getUniqueId())) {
+                if (this.core.streamers.spectating(var5)) {
+                    this.core.streamers.stopSpectate(var5, "§7관전을 그만뒀습니다.");
+                } else if (this.core.queued(var5.getUniqueId())) {
                     this.core.leaveRanked(var5);
                 } else if (this.core.roomOf.containsKey(var5.getUniqueId())) {
                     this.core.leaveRoom(var5);
@@ -779,7 +801,9 @@ public final class ClashPlugin extends JavaPlugin implements CommandExecutor, Ta
         var1.sendMessage("§f/clash ranked §7- 랭크전 매칭 / 취소 §8| §f/clash ai [easy|normal|hard]");
         var1.sendMessage("§f/clash room [create|invite <닉>|join <코드>|leave|kick <닉>|start]");
         var1.sendMessage("§f/clash deck | skin | profile | top | ff(항복) | leave | status");
+        var1.sendMessage("§f/관전 <닉> §7- 경기 관전 §8| §f/스트리머 §7- 스트리머 모드 (지정된 스트리머만) §8| §7경기 중 §e!§7채팅 = 전체 채팅");
         if (var2) {
+            var1.sendMessage("§c/스트리머 지정|해제 <닉> | 목록 §8| §c/관전 켜기|끄기 §7(전체 관전 on/off)");
             var1.sendMessage("§c/clash arena [add|paste|grid|remove|tp|list] §8| §c/clash lobby paste|refresh §8| §c/clash setlobby");
             var1.sendMessage("§c/clash start | stop [번호|all] | reload | cleanup | test ... | trophy <닉> <값> | giveskin <닉> <id|all>");
         }
@@ -788,6 +812,40 @@ public final class ClashPlugin extends JavaPlugin implements CommandExecutor, Ta
     public List<String> onTabComplete(CommandSender var1, Command var2, String var3, String[] var4) {
         ArrayList<String> var5 = new ArrayList<>();
         boolean var6 = var1.hasPermission("clash.admin");
+        String cmdName = var2 == null ? "clash" : var2.getName();
+        if ("스트리머".equals(cmdName) || "관전".equals(cmdName)) {
+            if (var4.length == 1) {
+                if ("스트리머".equals(cmdName)) {
+                    var5.addAll(Arrays.asList("켜기", "끄기", "귓말", "필터", "채팅", "상태"));
+                    if (var6) {
+                        var5.addAll(Arrays.asList("지정", "해제", "목록"));
+                    }
+                } else {
+                    var5.add("나가기");
+                    if (var6) {
+                        var5.addAll(Arrays.asList("켜기", "끄기"));
+                    }
+
+                    for (GameManager gm : this.core.matches) {
+                        for (UUID id : gm.teamOf.keySet()) {
+                            Player mp = Bukkit.getPlayer(id);
+                            if (mp != null) {
+                                var5.add(mp.getName());
+                            }
+                        }
+                    }
+                }
+            } else if (var4.length == 2 && var6 && "스트리머".equals(cmdName) && (var4[0].equals("지정") || var4[0].equals("해제"))) {
+                for (Player op : Bukkit.getOnlinePlayers()) {
+                    var5.add(op.getName());
+                }
+            }
+
+            String last = var4.length == 0 ? "" : var4[var4.length - 1].toLowerCase();
+            var5.removeIf(x -> !x.toLowerCase().startsWith(last));
+            return var5;
+        }
+
         if (var4.length == 1) {
             var5.addAll(SUBS);
             if (var6) {

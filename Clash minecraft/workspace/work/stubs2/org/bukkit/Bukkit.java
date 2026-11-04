@@ -18,4 +18,5 @@ public class Bukkit {
     public static java.util.List getWorlds() { return null; }
     public static org.bukkit.util.CachedServerIcon loadServerIcon(java.io.File a0) throws java.lang.Exception { return null; }
     public static java.lang.String getResourcePackHash() { return null; }
+    public static org.bukkit.entity.Player getPlayer(java.lang.String a0) { return null; }
 }

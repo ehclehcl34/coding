@@ -42,6 +42,8 @@ public interface Player extends org.bukkit.entity.HumanEntity, org.bukkit.Offlin
     default org.bukkit.entity.Player.Spigot spigot() { return null; }
     default boolean teleport(org.bukkit.Location a0) { return false; }
     default void showEntity(org.bukkit.plugin.Plugin a0, org.bukkit.entity.Entity a1) {  }
+    default void setPlayerListName(java.lang.String a0) {  }
+    default java.lang.String getDisplayName() { return null; }
     public static class Spigot {
         protected Spigot() {}
         public void sendMessage(net.md_5.bungee.api.ChatMessageType a0, net.md_5.bungee.api.chat.BaseComponent[] a1) {  }

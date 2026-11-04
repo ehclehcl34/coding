@@ -737,7 +737,7 @@ final class Menus {
                 List.of(
                     "§7비슷한 트로피끼리 2~10명 자동 매칭",
                     "§7승리 시 트로피 획득 · 패배 시 §c킹§7이 더 많이 잃음",
-                    "§7대기 §f" + this.core.rankedQueue.size() + "명 §8· §7빈 경기장 §f" + this.core.arenas.freeCount(),
+                    (this.core.streamers.live(this.viewer) ? "§7대기 §8비공개" : "§7대기 §f" + this.core.rankedQueue.size() + "명") + " §8· §7빈 경기장 §f" + this.core.arenas.freeCount(),
                     "",
                     var2 ? "§c클릭: 매칭 취소" : "§e클릭: 매칭 시작"
                 ),
@@ -1000,7 +1000,7 @@ final class Menus {
         @Override
         String title() {
             Room var1 = this.core.roomOf.get(this.viewer.getUniqueId());
-            return var1 == null ? Ui.title('\ue109', "친선전") : Ui.title('\ue106', "친선전 방 " + var1.code + " (" + var1.members.size() + "/10)");
+            return var1 == null ? Ui.title('\ue109', "친선전") : Ui.title('\ue106', "친선전 방 " + (this.core.streamers.live(this.viewer) ? "" : var1.code + " ") + "(" + var1.members.size() + "/10)");
         }
 
         @Override

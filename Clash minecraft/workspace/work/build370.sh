@@ -18,6 +18,15 @@ cp $W/arena_350.schem $V/clash_arena.schem
 cp $W/dec/clash_lobby.schem $V/clash_lobby.schem
 sed -i "s/^version: .*/version: 3.7.0-b$(date +%m%d%H%M)/" $V/plugin.yml
 sed -i 's/usage: \/clash \[menu|ranked|ai|room|deck|skin|profile|top|ff|leave|status\]/usage: \/clash [menu|ranked|ai|room|deck|skin|profile|top|ff|leave|status|bgm]/' $V/plugin.yml
+# 스트리머 모드 / 관전 명령어
+python3 - "$V/plugin.yml" <<'PYEOF'
+import sys
+p = sys.argv[1]
+s = open(p, encoding='utf-8').read()
+if '스트리머:' not in s:
+    s = s.replace('permissions:', '  스트리머:\n    description: 스트리머 모드 (관리자가 지정한 스트리머만)\n    aliases: [streamer]\n  관전:\n    description: 경기 관전\n    aliases: [spectate]\npermissions:', 1)
+open(p, 'w', encoding='utf-8').write(s)
+PYEOF
 if [ -f $W/ClashMC_UI_pack_370.zip ]; then cp $W/ClashMC_UI_pack_370.zip $V/ClashMC_UI_pack.zip; fi
 rm -f $W/ClashMC-3.7.0.jar
 cd $V && zip -q -X -r $W/ClashMC-3.7.0.jar META-INF $(ls | grep -v META-INF)

@@ -38,7 +38,8 @@ final class Room {
         for (UUID var3 : this.members) {
             Player var4 = Bukkit.getPlayer(var3);
             if (var4 != null) {
-                var4.sendMessage("§8[§b친선전 " + this.code + "§8] §r" + var1);
+                boolean hide = Streamers.instance != null && Streamers.instance.live(var3);
+                var4.sendMessage("§8[§b친선전" + (hide ? "" : " " + this.code) + "§8] §r" + var1);
             }
         }
     }

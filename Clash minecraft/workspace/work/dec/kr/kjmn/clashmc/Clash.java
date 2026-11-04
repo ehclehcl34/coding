@@ -121,7 +121,11 @@ public final class Clash {
         this.skins = new Skins(var1.getLogger());
         this.arenas = new ArenaPool(var1);
         this.lobby = new Lobby(this);
+        this.streamers = new Streamers(this);
     }
+
+    /** 스트리머 모드 · 관전 */
+    final Streamers streamers;
 
     void checkModels(int var1) {
         if (this.models.enabled()) {
@@ -271,6 +275,7 @@ public final class Clash {
         this.arenas.load();
         this.lobby.load();
         this.bgm.load(var1.getConfigurationSection("bgm"));
+        this.streamers.load();
     }
 
     void start() {
@@ -317,6 +322,12 @@ public final class Clash {
         }
 
         this.lobby.tick();
+        try {
+            this.streamers.tick();
+        } catch (Throwable st) {
+            this.plugin.getLogger().warning("스트리머/관전 오류: " + st);
+        }
+
         if (this.tick % 10L == 0L) {
             try {
                 this.bgm.tick();
@@ -373,6 +384,12 @@ public final class Clash {
         } else if (this.queued(var1.getUniqueId())) {
             if (var2) {
                 var1.sendMessage("§c랭크전 매칭 중입니다. 먼저 매칭을 취소하세요.");
+            }
+
+            return true;
+        } else if (this.streamers.spectating(var1)) {
+            if (var2) {
+                var1.sendMessage("§c관전 중입니다. 먼저 §f/관전 나가기");
             }
 
             return true;
@@ -445,6 +462,7 @@ public final class Clash {
                 }
 
                 this.rankedQueue.put(var1.getUniqueId(), this.tick);
+                this.streamers.onQueueJoin(var1);
                 this.sendUiPack(var1);
                 var1.playSound(var1.getLocation(), "block.note_block.chime", 1.0F, 1.2F);
                 var1.sendMessage("§6[랭크전] §f매칭 시작 §7(" + Ranks.label(var2.trophies) + " §7" + var2.trophies + "\ud83c\udfc6)");
@@ -454,6 +472,7 @@ public final class Clash {
     }
 
     void leaveRanked(Player var1) {
+        this.streamers.queueHold.remove(var1.getUniqueId());
         if (this.rankedQueue.remove(var1.getUniqueId()) != null) {
             var1.sendMessage("§7랭크전 매칭을 취소했습니다.");
             this.lobby.giveHotbar(var1);
@@ -462,14 +481,22 @@ public final class Clash {
 
     private void matchmake() {
         this.rankedQueue.keySet().removeIf(var0 -> Bukkit.getPlayer(var0) == null);
-        if (this.rankedQueue.size() >= this.rankedMin && this.arenas.freeCount() != 0) {
-            for (UUID var3 : new ArrayList<>(this.rankedQueue.keySet())) {
+        // 스트리머는 매칭 시작 후 랜덤 시간이 지나야 실제로 매칭 대상이 됨 (방송 보고 같이 큐 잡기 방지)
+        ArrayList<UUID> ready = new ArrayList<>();
+        for (UUID r : this.rankedQueue.keySet()) {
+            if (this.streamers.ready(r)) {
+                ready.add(r);
+            }
+        }
+
+        if (ready.size() >= this.rankedMin && this.arenas.freeCount() != 0) {
+            for (UUID var3 : ready) {
                 long var4 = (this.tick - this.rankedQueue.get(var3)) / 20L;
                 int var6 = this.profiles.get(var3).trophies;
                 int var7 = this.rankedWindow + (int)(var4 * this.rankedWindowGrow);
                 ArrayList<UUID> var8 = new ArrayList<>();
 
-                for (UUID var10 : this.rankedQueue.keySet()) {
+                for (UUID var10 : ready) {
                     if (Math.abs(this.profiles.get(var10).trophies - var6) <= var7) {
                         var8.add(var10);
                     }
@@ -532,7 +559,7 @@ public final class Clash {
                 this.rooms.put(var3, var4);
                 this.roomOf.put(var1.getUniqueId(), var4);
                 this.sendUiPack(var1);
-                var1.sendMessage("§b[친선전] §f방 생성 §7(코드 §f" + var3 + "§7) §8· §f/clash room invite <닉네임>");
+                var1.sendMessage("§b[친선전] §f방 생성 §7(코드 §f" + (this.streamers.live(var1) ? "****" : var3) + "§7) §8· §f/clash room invite <닉네임>");
                 return var4;
             }
         }
@@ -548,10 +575,12 @@ public final class Clash {
             Player var4 = Bukkit.getPlayerExact(var2);
             if (var4 == null) {
                 var1.sendMessage("§c" + var2 + " 님은 접속 중이 아닙니다.");
+            } else if (!var4.equals(var1) && this.streamers.blocksInvite(var4) && !var1.hasPermission("clash.admin")) {
+                var1.sendMessage("§c" + var4.getName() + " 님은 스트리머 모드라 초대를 받지 않습니다.");
             } else if (!var4.equals(var1)) {
                 var3.invited.add(var4.getUniqueId());
                 var1.sendMessage("§b[친선전] §f" + var4.getName() + " 님을 초대했습니다.");
-                Ui.clickable(var4, "§b[친선전] §f" + var1.getName() + " 님의 방 초대 §7(코드 " + var3.code + ") ", "§a§l[수락]", "/clash room join " + var3.code);
+                Ui.clickable(var4, "§b[친선전] §f" + var1.getName() + " 님의 방 초대 §7(코드 " + (this.streamers.live(var4) ? "****" : var3.code) + ") ", "§a§l[수락]", "/clash room join " + var3.code);
                 var4.playSound(var4.getLocation(), "block.note_block.bell", 1.0F, 1.4F);
             }
         }
@@ -922,6 +951,7 @@ public final class Clash {
         this.packSent.remove(var1.getUniqueId());
         this.packSentSha.remove(var1.getUniqueId());
         this.rankedQueue.remove(var1.getUniqueId());
+        this.streamers.onQuit(var1);
         GameManager var2 = this.matchOf(var1);
         if (var2 != null) {
             var2.handleQuit(var1);
